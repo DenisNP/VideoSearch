@@ -9,8 +9,8 @@ namespace VideoSearch.Controllers;
 public class ApiController(IStorage storage) : ControllerBase
 {
     [HttpGet("/GetIndexing")]
-    public async Task<List<VideoMeta>> GetIndexing([FromQuery] int count)
+    public async Task<List<VideoMeta>> GetIndexing([FromQuery] int count, [FromQuery] int offset = 0)
     {
-        return await storage.ListIndexingVideos(count);
+        return await storage.ListIndexingVideos(offset, count);
     }
 }

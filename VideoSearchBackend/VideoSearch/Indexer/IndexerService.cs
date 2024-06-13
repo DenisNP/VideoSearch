@@ -33,7 +33,7 @@ public class IndexerService(ILogger<IndexerService> logger, IServiceScopeFactory
             }
 
             await TryIndex(scope);
-            await Task.Delay(TimeSpan.FromSeconds(1), stoppingToken);
+            await Task.Delay(TimeSpan.FromMilliseconds(250), stoppingToken);
         }
     }
 

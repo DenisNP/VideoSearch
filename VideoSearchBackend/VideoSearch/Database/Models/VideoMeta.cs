@@ -1,4 +1,6 @@
-﻿namespace VideoSearch.Database.Models;
+﻿using System.Text.Json.Serialization;
+
+namespace VideoSearch.Database.Models;
 
 public class VideoMeta
 {
@@ -7,8 +9,12 @@ public class VideoMeta
     public DateTime StatusChangedAt { get; set; }
     public VideoIndexStatus Status { get; set; }
     public string Url { get; set; }
+    [JsonIgnore]
     public string RawDescription { get; set; }
+    [JsonIgnore]
     public string TranslatedDescription { get; set; }
+    [JsonIgnore]
+    public string Stt { get; set; }
     public List<string> Keywords { get; set; }
 }
 

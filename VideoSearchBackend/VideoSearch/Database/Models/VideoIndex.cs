@@ -11,4 +11,13 @@ public class VideoIndex
 
     [Column(TypeName = "vector(300)")]
     public Vector Vector { get; set; }
+
+    public int ClusterSize { get; set; }
+    public VideoIndexType Type { get; set; }
+}
+
+public enum VideoIndexType
+{
+    Video,
+    Stt
 }

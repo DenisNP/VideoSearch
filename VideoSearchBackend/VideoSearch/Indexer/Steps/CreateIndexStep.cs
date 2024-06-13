@@ -42,7 +42,7 @@ public class CreateIndexStep(ILogger logger) : BaseIndexStep(logger)
 
         var maxClusterPoints = clusters.Select(c => c.Points.Count).MaxBy(x => x);
 
-        foreach (Cluster cluster in clusters.Where(c => c.Points.Count >= maxClusterPoints / 2))
+        foreach (Cluster cluster in clusters/*.Where(c => c.Points.Count >= maxClusterPoints / 2)*/)
         {
             var word = cluster.MostCenterPoint().Word;
             record.Keywords.Add(word);
@@ -52,7 +52,9 @@ public class CreateIndexStep(ILogger logger) : BaseIndexStep(logger)
                 Id = Guid.NewGuid(),
                 VideoMetaId = record.Id,
                 Word = word,
-                Vector = new Vector(cluster.Centroid.Components.Select(x => (float)x).ToArray())
+                Vector = new Vector(cluster.Centroid.Components.Select(x => (float)x).ToArray()),
+                ClusterSize = cluster.Points.Count,
+                Type = VideoIndexType.Video
             });
         }
     }
