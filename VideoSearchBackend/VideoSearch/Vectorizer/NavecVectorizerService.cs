@@ -21,7 +21,7 @@ public class NavecVectorizerService(string? baseUrl) : IVectorizerService
         );
 
         var content = new StringContent(json, Encoding.UTF8, "application/json");
-        HttpResponseMessage httpResponse = await httpClient.PostAsync(_baseUrl + "/translate", content);
+        HttpResponseMessage httpResponse = await httpClient.PostAsync(_baseUrl + "/vectors", content);
 
         if (!httpResponse.IsSuccessStatusCode)
         {

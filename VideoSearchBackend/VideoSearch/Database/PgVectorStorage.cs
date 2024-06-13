@@ -41,28 +41,45 @@ public class PgVectorStorage(VsContext context, ILogger<PgVectorStorage> logger)
         await context.SaveChangesAsync();
     }
 
-    public async Task<List<VideoMeta>> Search(Vector vector, float tolerance, int count = 100)
+    public async Task<List<VideoMeta>> Search(float[] vector, float tolerance, int indexSearchCount = 100)
     {
-        var indicesFound = await context.VideoIndices.OrderBy(i => i.Vector.CosineDistance(vector))
-            .Select(i => new { Index = i, Distance = i.Vector.CosineDistance(vector) })
-            .Take(count)
+        var vec = new Vector(vector);
+        var indicesFound = await context.VideoIndices.OrderBy(i => i.Vector.CosineDistance(vec))
+            .Select(i => new { Index = i, Distance = i.Vector.CosineDistance(vec) })
+            .Take(indexSearchCount)
+            .ToListAsync();
+
+        var bestDistances = new Dictionary<Guid, double>();
+        foreach (var idx in indicesFound.Where(i => i.Distance <= tolerance))
+        {
+            Guid metaId = idx.Index.VideoMetaId;
+            double newDist = idx.Distance;
+
+            if (!bestDistances.TryGetValue(metaId, out double oldDist))
+            {
+                bestDistances.Add(metaId, newDist);
+            }
+            else if (oldDist > newDist)
+            {
+                bestDistances[metaId] = newDist;
+            }
+        }
+
+        List<Guid> ids = bestDistances.Keys.ToList();
+        List<VideoMeta> videos = await context.VideoMetas
+            .Where(m => ids.Contains(m.Id))
             .ToListAsync();
         
 #if DEBUG
-        foreach (var idx in indicesFound.Take(10))
+        foreach (var v in videos.OrderBy(v => bestDistances[v.Id]).Take(10))
         {
-            Console.WriteLine(idx.Distance);
-            Console.WriteLine(idx.Index.Word);
+            Console.WriteLine(bestDistances[v.Id]);
+            Console.WriteLine(v.Id);
+            Console.WriteLine(string.Join(", ", v.Keywords.Take(15)));
             Console.WriteLine();
         }
 #endif
 
-        List<Guid> ids = indicesFound
-            .Where(i => i.Distance <= tolerance)
-            .Select(i => i.Index.VideoMetaId)
-            .ToList();
-
-        List<VideoMeta> videos = await context.VideoMetas.Where(m => ids.Contains(m.Id)).ToListAsync();
-        return videos;
+        return videos.OrderBy(v => bestDistances[v.Id]).ToList();
     }
 }

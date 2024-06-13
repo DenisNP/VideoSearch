@@ -1,6 +1,7 @@
 ﻿using Pgvector;
 using VideoSearch.Database.Models;
 using VideoSearch.Indexer.Abstract;
+using VideoSearch.KMeans;
 using VideoSearch.Vectorizer.Abstract;
 using VideoSearch.Vectorizer.Models;
 
@@ -25,17 +26,30 @@ public class CreateIndexStep(ILogger logger) : BaseIndexStep(logger)
         var request = new VectorizeRequest(tokens);
         var vectors = await vectorizer.Vectorize(request);
 
-        record.Keywords = new();
+        var nonZero = vectors
+            .Where(v => v.Vector.Length > 0)
+            .ToList();
 
-        foreach (var (word, vector) in vectors)
+        record.Keywords = nonZero.Select(v => v.Word).ToList();
+        
+        List<DataVec> points = nonZero
+            .Select(v => new DataVec(v.Vector.Select(x => (double)x).ToArray()){ Word = v.Word })
+            .ToList();
+
+        // create clusters
+        KMeansClustering cl = new KMeansClustering(points.ToArray(), Math.Clamp(points.Count / 12, 2, 4));
+        Cluster[] clusters =  cl.Compute();
+
+        var maxClusterPoints = clusters.Select(c => c.Points.Count).MaxBy(x => x);
+
+        foreach (Cluster cluster in clusters.Where(c => c.Points.Count >= maxClusterPoints / 2))
         {
-            record.Keywords.Add(word);
             await Storage.AddIndex(new VideoIndex
             {
                 Id = Guid.NewGuid(),
                 VideoMetaId = record.Id,
-                Word = word,
-                Vector = new Vector(vector)
+                Word = cluster.MostCenterPoint().Word,
+                Vector = new Vector(cluster.Centroid.Components.Select(x => (float)x).ToArray())
             });
         }
     }

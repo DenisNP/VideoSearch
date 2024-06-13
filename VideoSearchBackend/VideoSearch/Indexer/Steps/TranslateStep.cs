@@ -15,7 +15,7 @@ public class TranslateStep(ILogger logger) : BaseIndexStep(logger)
         var translateService = ServiceProvider.GetRequiredService<ITranslatorService>();
 
         var request = new TranslateRequest(
-            Q: record.RawDescription,
+            Q: record.RawDescription.ToLower(),
             Source: "en",
             Target: "ru",
             Format: "text",
