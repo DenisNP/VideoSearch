@@ -1,16 +1,15 @@
 ﻿using System.Text;
 using System.Text.Json;
-using VideoSearch.VideoDescriber.Abstract;
-using VideoSearch.VideoDescriber.Models;
+using VideoSearch.Translator.Models;
 
-namespace VideoSearch.VideoDescriber;
+namespace VideoSearch.Translator;
 
-public class VideoDescriberService(string? baseUrl) : IVideoDescriberService
+public class LibreTranslatorService(string? baseUrl) : ITranslatorService
 {
     private readonly string _baseUrl = baseUrl
-        ?? throw new Exception(nameof(VideoDescriberService) + " " + nameof(baseUrl) + " is null");
+        ?? throw new Exception(nameof(LibreTranslatorService) + " " + nameof(baseUrl) + " is null");
 
-    public async Task<DescribeVideoResponse> Describe(DescribeVideoRequest request)
+    public async Task<TranslateResponse> Translate(TranslateRequest request)
     {
         using var httpClient = new HttpClient();
         httpClient.Timeout = TimeSpan.FromMinutes(5);
@@ -21,7 +20,7 @@ public class VideoDescriberService(string? baseUrl) : IVideoDescriberService
         );
 
         var content = new StringContent(json, Encoding.UTF8, "application/json");
-        HttpResponseMessage httpResponse = await httpClient.PostAsync(_baseUrl + "/describe", content);
+        HttpResponseMessage httpResponse = await httpClient.PostAsync(_baseUrl + "/translate", content);
 
         if (!httpResponse.IsSuccessStatusCode)
         {
@@ -29,8 +28,7 @@ public class VideoDescriberService(string? baseUrl) : IVideoDescriberService
         }
 
         string jsonResponse = await httpResponse.Content.ReadAsStringAsync();
-
-        return JsonSerializer.Deserialize<DescribeVideoResponse>(
+        return JsonSerializer.Deserialize<TranslateResponse>(
             jsonResponse,
             new JsonSerializerOptions { PropertyNameCaseInsensitive = true }
         ) ?? throw new Exception("Failed to deserialize response");

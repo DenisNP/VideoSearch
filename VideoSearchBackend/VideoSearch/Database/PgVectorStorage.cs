@@ -29,7 +29,9 @@ public class PgVectorStorage(VsContext context, ILogger<PgVectorStorage> logger)
     {
         return await context.VideoMetas
             .OrderBy(m => m.CreatedAt)
-            .FirstOrDefaultAsync(m => m.Status != VideoIndexStatus.Indexed);
+            .FirstOrDefaultAsync(m => m.Status != VideoIndexStatus.Indexed
+                                      && m.Status != VideoIndexStatus.Added
+                                      && m.Status != VideoIndexStatus.Error);
     }
 
     public async Task AddIndex(VideoIndex index)
@@ -43,5 +45,22 @@ public class PgVectorStorage(VsContext context, ILogger<PgVectorStorage> logger)
             .Select(i => new { Index = i, Distance = i.Vector.CosineDistance(vector) })
             .Take(count)
             .ToListAsync();
+        
+#if DEBUG
+        foreach (var idx in indicesFound.Take(10))
+        {
+            Console.WriteLine(idx.Distance);
+            Console.WriteLine(idx.Index.Word);
+            Console.WriteLine();
+        }
+#endif
+
+        List<Guid> ids = indicesFound
+            .Where(i => i.Distance <= tolerance)
+            .Select(i => i.Index.VideoMetaId)
+            .ToList();
+
+        List<VideoMeta> videos = await context.VideoMetas.Where(m => ids.Contains(m.Id)).ToListAsync();
+        return videos;
     }
 }
