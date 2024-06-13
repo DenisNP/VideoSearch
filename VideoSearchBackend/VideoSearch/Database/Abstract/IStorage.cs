@@ -12,4 +12,5 @@ public interface IStorage
 
     public Task AddIndex(VideoIndex index);
     public Task<List<VideoMeta>> Search(float[] vector, float tolerance, int indexSearchCount = 100);
+    public Task<List<VideoMeta>> ListIndexingVideos(int count);
 }

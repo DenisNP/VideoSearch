@@ -19,5 +19,5 @@ public enum VideoIndexStatus
     Described,
     Translated,
     Indexed,
-    Error
+    Error = -1,
 }
