@@ -30,7 +30,7 @@ public class CreateIndexStep(ILogger logger) : BaseIndexStep(logger)
             .Where(v => v.Vector.Length > 0)
             .ToList();
 
-        record.Keywords = nonZero.Select(v => v.Word).ToList();
+        record.Keywords = new();
         
         List<DataVec> points = nonZero
             .Select(v => new DataVec(v.Vector.Select(x => (double)x).ToArray()){ Word = v.Word })
@@ -44,11 +44,14 @@ public class CreateIndexStep(ILogger logger) : BaseIndexStep(logger)
 
         foreach (Cluster cluster in clusters.Where(c => c.Points.Count >= maxClusterPoints / 2))
         {
+            var word = cluster.MostCenterPoint().Word;
+            record.Keywords.Add(word);
+
             await Storage.AddIndex(new VideoIndex
             {
                 Id = Guid.NewGuid(),
                 VideoMetaId = record.Id,
-                Word = cluster.MostCenterPoint().Word,
+                Word = word,
                 Vector = new Vector(cluster.Centroid.Components.Select(x => (float)x).ToArray())
             });
         }
