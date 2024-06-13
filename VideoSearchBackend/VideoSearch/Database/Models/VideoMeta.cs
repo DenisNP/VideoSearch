@@ -9,14 +9,15 @@ public class VideoMeta
     public string Url { get; set; }
     public string RawDescription { get; set; }
     public string TranslatedDescription { get; set; }
-    public string[] Keywords { get; set; }
+    public List<string> Keywords { get; set; }
 }
 
 public enum VideoIndexStatus
 {
     Added,
+    Ready,
     Described,
     Translated,
-    KeywordsExtracted,
-    Indexed
+    Indexed,
+    Error = -1,
 }

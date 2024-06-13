@@ -19,6 +19,8 @@ public class VsContext : DbContext
             .HasIndex(m => m.Status);
         modelBuilder.Entity<VideoMeta>()
             .HasIndex(m => m.CreatedAt);
+        modelBuilder.Entity<VideoMeta>()
+            .HasIndex(m => m.StatusChangedAt);
 
         modelBuilder.Entity<VideoMeta>()
             .Property(m => m.Keywords).IsRequired(false);
