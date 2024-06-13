@@ -25,6 +25,7 @@ public abstract class BaseIndexStep(ILogger logger)
         {
             await InternalRun(record);
             record.Status = TargetStatus;
+            record.StatusChangedAt = DateTime.UtcNow;
             await Storage.UpdateMeta(record);
 
             return true;
@@ -32,6 +33,7 @@ public abstract class BaseIndexStep(ILogger logger)
         catch (Exception e)
         {
             record.Status = VideoIndexStatus.Error;
+            record.StatusChangedAt = DateTime.UtcNow;
             await Storage.UpdateMeta(record);
             logger.LogError(e.Message);
             logger.LogError(e.StackTrace);

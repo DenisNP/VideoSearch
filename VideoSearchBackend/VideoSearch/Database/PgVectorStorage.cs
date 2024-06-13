@@ -17,6 +17,7 @@ public class PgVectorStorage(VsContext context, ILogger<PgVectorStorage> logger)
     public async Task AddMeta(VideoMeta meta)
     {
         await context.VideoMetas.AddAsync(meta);
+        await context.SaveChangesAsync();
     }
 
     public async Task UpdateMeta(VideoMeta meta)
@@ -37,6 +38,7 @@ public class PgVectorStorage(VsContext context, ILogger<PgVectorStorage> logger)
     public async Task AddIndex(VideoIndex index)
     {
         await context.VideoIndices.AddAsync(index);
+        await context.SaveChangesAsync();
     }
 
     public async Task<List<VideoMeta>> Search(Vector vector, float tolerance, int count = 100)
