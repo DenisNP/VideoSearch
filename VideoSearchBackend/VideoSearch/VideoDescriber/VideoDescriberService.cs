@@ -11,7 +11,7 @@ public class VideoDescriberService(string? baseUrls) : IVideoDescriberService
         throw new Exception(nameof(VideoDescriberService) + " " + nameof(baseUrls) + " is null")
         : baseUrls.Split(";");
 
-    public async Task<DescribeVideoResponse> Describe(DescribeVideoRequest request)
+    public async Task<DescribeVideoResponse> Describe(DescribeVideoRequest request, int nThread = -1)
     {
         using var httpClient = new HttpClient();
         httpClient.Timeout = TimeSpan.FromMinutes(5);
@@ -22,7 +22,8 @@ public class VideoDescriberService(string? baseUrls) : IVideoDescriberService
         );
 
         var content = new StringContent(json, Encoding.UTF8, "application/json");
-        HttpResponseMessage httpResponse = await httpClient.PostAsync(_baseUrls.PickRandom() + "/describe", content);
+        string baseUrl = nThread == -1 ? _baseUrls.PickRandom() : _baseUrls[nThread % _baseUrls.Length];
+        HttpResponseMessage httpResponse = await httpClient.PostAsync(baseUrl + "/describe", content);
 
         if (!httpResponse.IsSuccessStatusCode)
         {

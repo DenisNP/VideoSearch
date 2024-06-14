@@ -5,9 +5,9 @@ using VideoSearch.Indexer.Steps;
 
 namespace VideoSearch.Indexer;
 
-public class IndexerService(ILogger<IndexerService> logger, IServiceScopeFactory serviceScopeFactory) : BackgroundService
+public class IndexerService(ILogger<IndexerService> logger, IStorage storage, IServiceScopeFactory serviceScopeFactory) : BackgroundService
 {
-    private const int Parallel = 5;
+    private const int Parallel = 3;
     
     private readonly BaseIndexStep[] _steps =
     [
@@ -22,12 +22,14 @@ public class IndexerService(ILogger<IndexerService> logger, IServiceScopeFactory
         await Task.Delay(TimeSpan.FromSeconds(10), stoppingToken);
 
         logger.LogInformation("Background indexer is running...");
-        IEnumerable<Task> tasks = Enumerable.Range(1, Parallel).Select(_ => Task.Run(async () =>
+        await storage.ClearQueued();
+
+        IEnumerable<Task> tasks = Enumerable.Range(1, Parallel).Select(n => Task.Run(async () =>
         {
             using IServiceScope scope = serviceScopeFactory.CreateScope();
             while (!stoppingToken.IsCancellationRequested)
             {
-                await TryIndex(scope);
+                await TryIndex(scope, n - 1);
                 await Task.Delay(TimeSpan.FromMilliseconds(250), stoppingToken);
             }
         }, stoppingToken));
@@ -35,17 +37,17 @@ public class IndexerService(ILogger<IndexerService> logger, IServiceScopeFactory
         await Task.WhenAll(tasks);
     }
 
-    private async Task TryIndex(IServiceScope scope)
+    private async Task TryIndex(IServiceScope scope, int nThread)
     {
         try
         {
-            var storage = scope.ServiceProvider.GetRequiredService<IStorage>();
-            VideoMeta record = await storage.GetNextNotIndexed();
+            var scopedStorage = scope.ServiceProvider.GetRequiredService<IStorage>();
+            VideoMeta record = await scopedStorage.GetNextNotIndexed();
             if (record != null)
             {
                 foreach (BaseIndexStep step in _steps)
                 {
-                    await step.Run(record, scope);
+                    await step.Run(record, scope, nThread);
                 }
             }
         }

@@ -48,6 +48,16 @@ public class PgVectorStorage(VsContext context, ILogger<PgVectorStorage> logger)
         }
     }
 
+    public async Task ClearQueued()
+    {
+        List<VideoMeta> queued = await context.VideoMetas
+            .Where(m => m.Status == VideoIndexStatus.Queued)
+            .ToListAsync();
+        
+        queued.ForEach(m => m.Status = VideoIndexStatus.Idle);
+        await context.SaveChangesAsync();
+    }
+
     public async Task AddIndex(VideoIndex index)
     {
         await context.VideoIndices.AddAsync(index);

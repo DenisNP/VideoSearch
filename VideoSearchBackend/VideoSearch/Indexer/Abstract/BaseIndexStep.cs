@@ -8,7 +8,7 @@ public abstract class BaseIndexStep(ILogger logger)
     protected abstract VideoIndexStatus InitialStatus { get; }
     protected abstract VideoIndexStatus TargetStatus { get; }
 
-    public async Task<bool> Run(VideoMeta record, IServiceScope scope)
+    public async Task<bool> Run(VideoMeta record, IServiceScope scope, int nThread)
     {
         if (record.Status != InitialStatus)
         {
@@ -19,7 +19,7 @@ public abstract class BaseIndexStep(ILogger logger)
 
         try
         {
-            await InternalRun(record, scope.ServiceProvider, storage);
+            await InternalRun(record, scope.ServiceProvider, storage, nThread);
             record.Status = TargetStatus;
             record.StatusChangedAt = DateTime.UtcNow;
             await storage.UpdateMeta(record);
@@ -38,5 +38,5 @@ public abstract class BaseIndexStep(ILogger logger)
         return false;
     }
 
-    protected abstract Task InternalRun(VideoMeta record, IServiceProvider serviceProvider, IStorage storage);
+    protected abstract Task InternalRun(VideoMeta record, IServiceProvider serviceProvider, IStorage storage, int nThread);
 }
