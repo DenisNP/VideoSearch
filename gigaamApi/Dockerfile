@@ -11,7 +11,7 @@ RUN pip install Cython
 RUN pip install git+https://github.com/NVIDIA/NeMo.git@1fa961ba03ab5f8c91b278640e29807079373372#egg=nemo_toolkit[all]
 RUN pip install -U soundfile
 RUN pip install pyannote.audio==3.2.0
-RUN pip install fastapi pydantic
+RUN pip install fastapi pydantic keybert[flair]
 
 COPY . /workspace/data
 
