@@ -19,6 +19,7 @@ builder.Services.AddVectorizer(Environment.GetEnvironmentVariable("NAVEC_API_URL
 
 builder.Services.AddDatabase();
 builder.Services.AddHostedService<IndexerService>();
+builder.Services.AddSingleton<SearchService>();
 
 // build
 WebApplication app = builder.Build();
