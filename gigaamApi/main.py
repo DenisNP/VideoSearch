@@ -52,8 +52,6 @@ async def transcribe_audio(request: TranscribeRequest):
         os.remove(video_path)
         os.remove(audio_path)
         
-        print('Result: ',result[0])
-        
         return TranscribeResponse(result=result[0])
     except Exception as e:
         return TranscribeResponse(error=str(e))

@@ -28,6 +28,8 @@ public class VsContext : DbContext
             .Property(m => m.TranslatedDescription).IsRequired(false);
         modelBuilder.Entity<VideoMeta>()
             .Property(m => m.RawDescription).IsRequired(false);
+        modelBuilder.Entity<VideoMeta>()
+            .Property(m => m.Stt).IsRequired(false);
 
         modelBuilder.Entity<VideoIndex>()
             .HasKey(i => i.Id);
