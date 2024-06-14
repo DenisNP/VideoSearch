@@ -13,12 +13,12 @@ public class DescribeStep(ILogger logger) : BaseIndexStep(logger)
 
     private const string Prompt = "Provide a list of keywords describing this video. Only list, no title text.";
 
-    protected override async Task InternalRun(VideoMeta record, IServiceProvider serviceProvider, IStorage storage)
+    protected override async Task InternalRun(VideoMeta record, IServiceProvider serviceProvider, IStorage storage, int nThread)
     {
         var videoDescriberService = serviceProvider.GetRequiredService<IVideoDescriberService>();
 
         DescribeVideoRequest request = new(record.Url, Prompt);
-        DescribeVideoResponse result = await videoDescriberService.Describe(request);
+        DescribeVideoResponse result = await videoDescriberService.Describe(request, nThread);
 
         if (result.Error != null)
         {

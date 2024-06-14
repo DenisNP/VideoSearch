@@ -13,7 +13,7 @@ public class CreateIndexStep(ILogger logger) : BaseIndexStep(logger)
     protected override VideoIndexStatus InitialStatus => VideoIndexStatus.Translated;
     protected override VideoIndexStatus TargetStatus => VideoIndexStatus.Indexed;
 
-    protected override async Task InternalRun(VideoMeta record, IServiceProvider serviceProvider, IStorage storage)
+    protected override async Task InternalRun(VideoMeta record, IServiceProvider serviceProvider, IStorage storage, int nThread)
     {
         string[] tokens = record.TranslatedDescription
             .Tokenize()

@@ -11,7 +11,7 @@ public class TranslateStep(ILogger logger) : BaseIndexStep(logger)
     protected override VideoIndexStatus InitialStatus => VideoIndexStatus.Described;
     protected override VideoIndexStatus TargetStatus => VideoIndexStatus.Translated;
 
-    protected override async Task InternalRun(VideoMeta record, IServiceProvider serviceProvider, IStorage storage)
+    protected override async Task InternalRun(VideoMeta record, IServiceProvider serviceProvider, IStorage storage, int nThread)
     {
         var translateService = serviceProvider.GetRequiredService<ITranslatorService>();
 
