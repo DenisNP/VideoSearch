@@ -2,8 +2,8 @@ services:
     libretranslate:
         container_name: libre_translate
         image: libretranslate/libretranslate
-        ports:
-            - 5123:5000
+        #ports:
+        #    - 5123:5000
         environment:
             LT_LOAD_ONLY: "en,ru"
         volumes:
@@ -11,5 +11,17 @@ services:
     navec:
         container_name: navec_api
         build: ./navecApi
+        #ports:
+        #    - 5124:8000
+    backend:
+        container_name: video_search_back
+        build: ./VideoSearchBackend
         ports:
-            - 5124:8000
+            - 5100:80
+        depends_on:
+            - libretranslate
+            - navec
+        environment:
+            LIBRE_TRANSLATE_URL: libretranslate:5000
+            NAVEC_API_URL: navec:8000
+        env_file: .env
