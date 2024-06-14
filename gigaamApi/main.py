@@ -26,6 +26,10 @@ class TranscribeResponse(BaseModel):
     result: str = None
     error: str = None
 
+class KeywordsResponse(BaseModel):
+    result: [] = None
+    error: str = None
+
 # Load model
 device = "cuda" if torch.cuda.is_available() else "cpu"
 model = EncDecRNNTBPEModel.from_config_file("./rnnt_model_config.yaml")
@@ -86,6 +90,6 @@ async def transcribe_audio(request: TranscribeRequest):
         os.remove(video_path)
         os.remove(audio_path)
         
-        return TranscribeResponse(result=result)
+        return KeywordsResponse(result=result)
     except Exception as e:
-        return TranscribeResponse(error=str(e))
+        return KeywordsResponse(error=str(e))
