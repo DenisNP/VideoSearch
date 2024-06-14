@@ -8,9 +8,6 @@ public abstract class BaseIndexStep(ILogger logger)
     protected abstract VideoIndexStatus InitialStatus { get; }
     protected abstract VideoIndexStatus TargetStatus { get; }
 
-    protected IStorage Storage { get; set; }
-    protected IServiceProvider ServiceProvider { get; set; }
-
     public async Task<bool> Run(VideoMeta record, IServiceScope scope)
     {
         if (record.Status != InitialStatus)
@@ -18,15 +15,14 @@ public abstract class BaseIndexStep(ILogger logger)
             return false;
         }
 
-        ServiceProvider = scope.ServiceProvider;
-        Storage = ServiceProvider.GetRequiredService<IStorage>();
+        var storage = scope.ServiceProvider.GetRequiredService<IStorage>();
 
         try
         {
-            await InternalRun(record);
+            await InternalRun(record, scope.ServiceProvider, storage);
             record.Status = TargetStatus;
             record.StatusChangedAt = DateTime.UtcNow;
-            await Storage.UpdateMeta(record);
+            await storage.UpdateMeta(record);
 
             return true;
         }
@@ -34,7 +30,7 @@ public abstract class BaseIndexStep(ILogger logger)
         {
             record.Status = VideoIndexStatus.Error;
             record.StatusChangedAt = DateTime.UtcNow;
-            await Storage.UpdateMeta(record);
+            await storage.UpdateMeta(record);
             logger.LogError(e.Message);
             logger.LogError(e.StackTrace);
         }
@@ -42,5 +38,5 @@ public abstract class BaseIndexStep(ILogger logger)
         return false;
     }
 
-    protected abstract Task InternalRun(VideoMeta record);
+    protected abstract Task InternalRun(VideoMeta record, IServiceProvider serviceProvider, IStorage storage);
 }

@@ -1,4 +1,5 @@
-﻿using VideoSearch.Database.Models;
+﻿using VideoSearch.Database.Abstract;
+using VideoSearch.Database.Models;
 using VideoSearch.Indexer.Abstract;
 using VideoSearch.Translator;
 using VideoSearch.Translator.Models;
@@ -10,9 +11,9 @@ public class TranslateStep(ILogger logger) : BaseIndexStep(logger)
     protected override VideoIndexStatus InitialStatus => VideoIndexStatus.Described;
     protected override VideoIndexStatus TargetStatus => VideoIndexStatus.Translated;
 
-    protected override async Task InternalRun(VideoMeta record)
+    protected override async Task InternalRun(VideoMeta record, IServiceProvider serviceProvider, IStorage storage)
     {
-        var translateService = ServiceProvider.GetRequiredService<ITranslatorService>();
+        var translateService = serviceProvider.GetRequiredService<ITranslatorService>();
 
         var request = new TranslateRequest(
             Q: record.RawDescription.ToLower(),

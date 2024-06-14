@@ -1,4 +1,5 @@
 ﻿using Pgvector;
+using VideoSearch.Database.Abstract;
 using VideoSearch.Database.Models;
 using VideoSearch.Indexer.Abstract;
 using VideoSearch.KMeans;
@@ -12,7 +13,7 @@ public class CreateIndexStep(ILogger logger) : BaseIndexStep(logger)
     protected override VideoIndexStatus InitialStatus => VideoIndexStatus.Translated;
     protected override VideoIndexStatus TargetStatus => VideoIndexStatus.Indexed;
 
-    protected override async Task InternalRun(VideoMeta record)
+    protected override async Task InternalRun(VideoMeta record, IServiceProvider serviceProvider, IStorage storage)
     {
         string[] tokens = record.TranslatedDescription
             .Tokenize()
@@ -21,7 +22,7 @@ public class CreateIndexStep(ILogger logger) : BaseIndexStep(logger)
             .OrderBy(x => x)
             .ToArray();
 
-        var vectorizer = ServiceProvider.GetRequiredService<IVectorizerService>();
+        var vectorizer = serviceProvider.GetRequiredService<IVectorizerService>();
 
         var request = new VectorizeRequest(tokens);
         var vectors = await vectorizer.Vectorize(request);
@@ -47,7 +48,7 @@ public class CreateIndexStep(ILogger logger) : BaseIndexStep(logger)
             var word = cluster.MostCenterPoint().Word;
             record.Keywords.Add(word);
 
-            await Storage.AddIndex(new VideoIndex
+            await storage.AddIndex(new VideoIndex
             {
                 Id = Guid.NewGuid(),
                 VideoMetaId = record.Id,

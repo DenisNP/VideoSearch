@@ -24,9 +24,9 @@ public class IndexerService(ILogger<IndexerService> logger, IServiceScopeFactory
         logger.LogInformation("Background indexer is running...");
         IEnumerable<Task> tasks = Enumerable.Range(1, Parallel).Select(_ => Task.Run(async () =>
         {
+            using IServiceScope scope = serviceScopeFactory.CreateScope();
             while (!stoppingToken.IsCancellationRequested)
             {
-                using IServiceScope scope = serviceScopeFactory.CreateScope();
                 await TryIndex(scope);
                 await Task.Delay(TimeSpan.FromMilliseconds(250), stoppingToken);
             }
