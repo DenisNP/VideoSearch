@@ -25,8 +25,8 @@ RUN apt-get update && apt-get install --no-install-recommends -y \
 RUN GIT_REPO_URL="https://huggingface.co/ai-forever/ruBert-base" \
     && mkdir -p /workspace/data/models \
     && git lfs install \
-    && git clone $GIT_REPO_URL /workspace/data/models \
-    && rm -rf /workspace/data/models/.git \
+    && git clone $GIT_REPO_URL /workspace/data/models/ruBert-base \
+    && rm -rf /workspace/data/models/ruBert-base/.git \
     && echo "Git ruBERT-base models downloaded successfully to models/ruBERT-base directory."
 
 # Define the command to run the application
