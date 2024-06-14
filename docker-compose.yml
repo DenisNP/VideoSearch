@@ -1,3 +1,5 @@
+version: 3
+
 services:
     libretranslate:
         container_name: libre_translate
