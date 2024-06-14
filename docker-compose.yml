@@ -19,7 +19,7 @@ services:
         container_name: video_search_back
         build: ./VideoSearchBackend
         ports:
-            - 5100:80
+            - 5100:8080
         depends_on:
             - libretranslate
             - navec

@@ -11,5 +11,5 @@ WORKDIR /app
 COPY --from=BUILD_SERVER /app/out .
 
 # run
-EXPOSE 80
+EXPOSE 8080
 ENTRYPOINT ["dotnet", "VideoSearch.dll"]
