@@ -17,6 +17,11 @@ RUN pip install transformers
 
 COPY . /workspace/data
 
+RUN apt-get update && apt-get install --no-install-recommends -y \
+    git \
+    git-lfs \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
+
 RUN GIT_REPO_URL="https://huggingface.co/ai-forever/ruBert-base" \
     && mkdir -p /workspace/data/models \
     && git lfs install \
