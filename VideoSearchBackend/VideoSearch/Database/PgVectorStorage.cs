@@ -29,6 +29,7 @@ public class PgVectorStorage(VsContext context, ILogger<PgVectorStorage> logger)
     public async Task<VideoMeta> GetNextNotIndexed()
     {
         VideoMeta video = await context.VideoMetas
+            .AsNoTracking()
             .OrderBy(m => m.CreatedAt)
             .FirstOrDefaultAsync(m => m.Status != VideoIndexStatus.Indexed
                                       && m.Status != VideoIndexStatus.Error);
