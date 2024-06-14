@@ -19,6 +19,10 @@ public class IndexerService(ILogger<IndexerService> logger, IServiceScopeFactory
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
+        logger.LogInformation("Starting background indexer in 10 seconds...");
+        await Task.Delay(TimeSpan.FromSeconds(10), stoppingToken);
+
+        logger.LogInformation("Background indexer is running...");
         using IServiceScope scope = serviceScopeFactory.CreateScope();
         while (!stoppingToken.IsCancellationRequested)
         {

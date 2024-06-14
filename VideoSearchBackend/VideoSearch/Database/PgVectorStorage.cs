@@ -93,4 +93,9 @@ public class PgVectorStorage(VsContext context, ILogger<PgVectorStorage> logger)
             .Take(count)
             .ToListAsync();
     }
+
+    public async Task<int> CountForStatus(VideoIndexStatus status)
+    {
+        return await context.VideoMetas.CountAsync(v => v.Status == status);
+    }
 }

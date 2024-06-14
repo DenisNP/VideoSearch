@@ -12,9 +12,25 @@ namespace VideoSearch.Controllers;
 public class ApiController(IStorage storage, IVectorizerService vectorizerService) : ControllerBase
 {
     [HttpGet("/GetIndexing")]
-    public async Task<List<VideoMeta>> GetIndexing([FromQuery] int count, [FromQuery] int offset = 0)
+    public async Task<IndexingResult> GetIndexing([FromQuery] int count, [FromQuery] int offset = 0)
     {
-        return await storage.ListIndexingVideos(offset, count);
+        List<VideoMeta> videos = await storage.ListIndexingVideos(offset, count);
+        var statuses = new[]
+        {
+            // VideoIndexStatus.Added,
+            VideoIndexStatus.Ready,
+            VideoIndexStatus.Indexed,
+            VideoIndexStatus.Error
+        };
+
+        var result = new IndexingResult(videos, new Dictionary<string, int>());
+        foreach (VideoIndexStatus videoIndexStatus in statuses)
+        {
+            int total = await storage.CountForStatus(videoIndexStatus);
+            result.TotalByStatus.Add(videoIndexStatus.ToString(), total);
+        }
+
+        return result;
     }
 
     [HttpGet("/Search")]
@@ -31,8 +47,8 @@ public class ApiController(IStorage storage, IVectorizerService vectorizerServic
         Dictionary<Guid, SearchResult> distances = new();
         foreach (var (_, vec) in vectors)
         {
-            var searchResult = await storage.Search(vec, 0.75f);
-            foreach ((VideoMeta video, var dist) in searchResult)
+            List<(VideoMeta video, double distance)> searchResult = await storage.Search(vec, 0.75f);
+            foreach ((VideoMeta video, double dist) in searchResult)
             {
                 if (!distances.ContainsKey(video.Id))
                 {
@@ -53,7 +69,11 @@ public class ApiController(IStorage storage, IVectorizerService vectorizerServic
         }
 
         double expectedDist = Math.Min(0.65 + (vectors.Count - 1) * 0.1, 0.9);
-        var found = distances.Values.OrderBy(v => v.AvgDist).Where(v => v.AvgDist <= expectedDist).ToList();
+        List<SearchResult> found = distances.Values
+            .OrderBy(v => v.AvgDist)
+            .Where(v => v.AvgDist <= expectedDist)
+            .ToList();
+
         return found.ToList();
     }
 }
@@ -63,3 +83,5 @@ public record SearchResult(VideoMeta Video, [property: JsonIgnore] List<double> 
     private double? _avg;
     public double AvgDist => _avg ??= Distances.Average();
 }
+
+public record IndexingResult(List<VideoMeta> Videos, Dictionary<string, int> TotalByStatus);
