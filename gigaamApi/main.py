@@ -27,7 +27,7 @@ class TranscribeResponse(BaseModel):
     error: str = None
 
 class KeywordsResponse(BaseModel):
-    result: [] = None
+    result: list[str] = None
     error: str = None
 
 # Load model
@@ -68,8 +68,8 @@ async def transcribe_audio(request: TranscribeRequest):
     except Exception as e:
         return TranscribeResponse(error=str(e))
 
-@app.post("/transcribe-keywords", response_model=TranscribeResponse)
-async def transcribe_audio(request: TranscribeRequest):
+@app.post("/transcribe-keywords", response_model=KeywordsResponse)
+async def transcribe_keywords(request: TranscribeRequest):
     try:
         # Download the video
         with tempfile.NamedTemporaryFile(delete=False, suffix=".mp4") as tmp_file:
