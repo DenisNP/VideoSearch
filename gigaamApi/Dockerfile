@@ -17,5 +17,12 @@ RUN pip install transformers
 
 COPY . /workspace/data
 
+RUN GIT_REPO_URL="https://huggingface.co/ai-forever/ruBert-base" \
+    && mkdir -p /workspace/data/models \
+    && git lfs install \
+    && git clone $GIT_REPO_URL /workspace/data/models \
+    && rm -rf /workspace/data/models/.git \
+    && echo "Git ruBERT-base models downloaded successfully to models/ruBERT-base directory."
+
 # Define the command to run the application
 CMD ["fastapi", "run", "main.py", "--proxy-headers", "--port", "80"]
