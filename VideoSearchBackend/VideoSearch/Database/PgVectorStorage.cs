@@ -41,6 +41,7 @@ public class PgVectorStorage(VsContext context, ILogger<PgVectorStorage> logger)
 
         video.Status = VideoIndexStatus.Queued;
         await UpdateMeta(video);
+        context.ChangeTracker.Clear();
         return video;
     }
 
