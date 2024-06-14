@@ -40,7 +40,7 @@ model = model.to(device)
 
 #embedding_model = TransformerDocumentEmbeddings('cointegrated/rubert-tiny2')
 #embedding_model = TransformerDocumentEmbeddings('DeepPavlov/rubert-base-cased')
-embedding_model = TransformerDocumentEmbeddings('models/ruBert-base')
+embedding_model = TransformerDocumentEmbeddings('/workspace/data/models/ruBert-base')
 
 
 kw_model = KeyBERT(model=embedding_model)
