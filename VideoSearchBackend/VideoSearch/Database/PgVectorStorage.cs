@@ -34,8 +34,7 @@ public class PgVectorStorage(VsContext context, ILogger<PgVectorStorage> logger)
         {
             VideoMeta video = context.VideoMetas
                 .OrderBy(m => m.CreatedAt)
-                .FirstOrDefault(m => m.Status != VideoIndexStatus.Indexed
-                                          && m.Status != VideoIndexStatus.Error);
+                .FirstOrDefault(m => m.Status == VideoIndexStatus.Idle);
 
             if (video == null)
             {
