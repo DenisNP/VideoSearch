@@ -28,11 +28,19 @@ public class PgVectorStorage(VsContext context, ILogger<PgVectorStorage> logger)
 
     public async Task<VideoMeta> GetNextNotIndexed()
     {
-        return await context.VideoMetas
+        VideoMeta video = await context.VideoMetas
             .OrderBy(m => m.CreatedAt)
             .FirstOrDefaultAsync(m => m.Status != VideoIndexStatus.Indexed
-                                      && m.Status != VideoIndexStatus.Added
                                       && m.Status != VideoIndexStatus.Error);
+
+        if (video == null)
+        {
+            return null;
+        }
+
+        video.Status = VideoIndexStatus.Queued;
+        await UpdateMeta(video);
+        return video;
     }
 
     public async Task AddIndex(VideoIndex index)
@@ -88,7 +96,7 @@ public class PgVectorStorage(VsContext context, ILogger<PgVectorStorage> logger)
         return await context.VideoMetas
             .OrderBy(m => m.Status)
             .ThenByDescending(m => m.StatusChangedAt)
-            .Where(m => m.Status != VideoIndexStatus.Added)
+            .Where(m => m.Status != VideoIndexStatus.Idle)
             .Skip(offset)
             .Take(count)
             .ToListAsync();

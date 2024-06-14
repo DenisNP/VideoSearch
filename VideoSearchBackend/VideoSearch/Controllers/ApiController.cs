@@ -7,7 +7,7 @@ using VideoSearch.Indexer.Models;
 namespace VideoSearch.Controllers;
 
 [ApiController]
-[Route("[controller]")]
+[Route("api")]
 public class ApiController(IStorage storage, SearchService searchService) : ControllerBase
 {
     [HttpGet("/GetIndexing")]
@@ -17,7 +17,7 @@ public class ApiController(IStorage storage, SearchService searchService) : Cont
         var statuses = new[]
         {
             // VideoIndexStatus.Added,
-            VideoIndexStatus.Ready,
+            VideoIndexStatus.Queued,
             VideoIndexStatus.Indexed,
             VideoIndexStatus.Error
         };

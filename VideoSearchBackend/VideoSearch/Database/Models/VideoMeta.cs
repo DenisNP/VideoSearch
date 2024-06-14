@@ -20,8 +20,8 @@ public class VideoMeta
 
 public enum VideoIndexStatus
 {
-    Added,
-    Ready,
+    Idle,
+    Queued,
     Described,
     Translated,
     Indexed,

@@ -7,9 +7,8 @@ namespace VideoSearch.Indexer;
 
 public class IndexerService(ILogger<IndexerService> logger, IServiceScopeFactory serviceScopeFactory) : BackgroundService
 {
-    private bool _isIndexingNow = false;
-    private int _attempts = 0;
-
+    private const int Parallel = 5;
+    
     private readonly BaseIndexStep[] _steps =
     [
         new DescribeStep(logger),
@@ -23,29 +22,21 @@ public class IndexerService(ILogger<IndexerService> logger, IServiceScopeFactory
         await Task.Delay(TimeSpan.FromSeconds(10), stoppingToken);
 
         logger.LogInformation("Background indexer is running...");
-        using IServiceScope scope = serviceScopeFactory.CreateScope();
-        while (!stoppingToken.IsCancellationRequested)
+        IEnumerable<Task> tasks = Enumerable.Range(1, Parallel).Select(_ => Task.Run(async () =>
         {
-            if (_isIndexingNow)
+            using IServiceScope scope = serviceScopeFactory.CreateScope();
+            while (!stoppingToken.IsCancellationRequested)
             {
-                continue;
+                await TryIndex(scope);
+                await Task.Delay(TimeSpan.FromMilliseconds(250), stoppingToken);
             }
+        }, stoppingToken));
 
-            if (_attempts >= 10)
-            {
-                break;
-            }
-
-            await TryIndex(scope);
-            await Task.Delay(TimeSpan.FromMilliseconds(250), stoppingToken);
-        }
+        await Task.WhenAll(tasks);
     }
 
     private async Task TryIndex(IServiceScope scope)
     {
-        if (_isIndexingNow) return;
-        _isIndexingNow = true;
-
         try
         {
             var storage = scope.ServiceProvider.GetRequiredService<IStorage>();
@@ -57,15 +48,11 @@ public class IndexerService(ILogger<IndexerService> logger, IServiceScopeFactory
                     await step.Run(record, scope);
                 }
             }
-
-            _attempts = 0;
-            _isIndexingNow = false;
         }
         catch (Exception e)
         {
             logger.LogError(e.Message);
             logger.LogError(e.StackTrace);
-            _attempts++;
         }
     }
 }

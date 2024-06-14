@@ -80,4 +80,9 @@ public static class Utils
 
         return cosineDistance;
     }
+    
+    public static T PickRandom<T>(this IList<T> list)
+    {
+        return list[Random.Shared.Next(list.Count)];
+    }
 }

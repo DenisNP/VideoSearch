@@ -5,23 +5,24 @@ using VideoSearch.VideoDescriber.Models;
 
 namespace VideoSearch.VideoDescriber;
 
-public class VideoDescriberService(string? baseUrl) : IVideoDescriberService
+public class VideoDescriberService(string? baseUrls) : IVideoDescriberService
 {
-    private readonly string _baseUrl = baseUrl
-        ?? throw new Exception(nameof(VideoDescriberService) + " " + nameof(baseUrl) + " is null");
+    private readonly string[] _baseUrls = baseUrls == null ?
+        throw new Exception(nameof(VideoDescriberService) + " " + nameof(baseUrls) + " is null")
+        : baseUrls.Split(";");
 
     public async Task<DescribeVideoResponse> Describe(DescribeVideoRequest request)
     {
         using var httpClient = new HttpClient();
         httpClient.Timeout = TimeSpan.FromMinutes(5);
 
-        var json = JsonSerializer.Serialize(
+        string json = JsonSerializer.Serialize(
             request,
             new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase }
         );
 
         var content = new StringContent(json, Encoding.UTF8, "application/json");
-        HttpResponseMessage httpResponse = await httpClient.PostAsync(_baseUrl + "/describe", content);
+        HttpResponseMessage httpResponse = await httpClient.PostAsync(_baseUrls.PickRandom() + "/describe", content);
 
         if (!httpResponse.IsSuccessStatusCode)
         {
