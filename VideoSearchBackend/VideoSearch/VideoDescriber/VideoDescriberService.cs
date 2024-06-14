@@ -14,7 +14,7 @@ public class VideoDescriberService(string? baseUrls) : IVideoDescriberService
     public async Task<DescribeVideoResponse> Describe(DescribeVideoRequest request, int nThread = -1)
     {
         using var httpClient = new HttpClient();
-        httpClient.Timeout = TimeSpan.FromMinutes(5);
+        httpClient.Timeout = TimeSpan.FromMinutes(1);
 
         string json = JsonSerializer.Serialize(
             request,

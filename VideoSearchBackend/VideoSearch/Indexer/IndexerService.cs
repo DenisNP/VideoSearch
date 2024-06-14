@@ -7,7 +7,7 @@ namespace VideoSearch.Indexer;
 
 public class IndexerService(ILogger<IndexerService> logger, IStorage storage, IServiceScopeFactory serviceScopeFactory) : BackgroundService
 {
-    private const int Parallel = 3;
+    private const int Parallel = 2;
     
     private readonly BaseIndexStep[] _steps =
     [
