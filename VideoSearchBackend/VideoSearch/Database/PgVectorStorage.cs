@@ -8,7 +8,7 @@ namespace VideoSearch.Database;
 
 public class PgVectorStorage(VsContext context, ILogger<PgVectorStorage> logger) : IStorage
 {
-    private readonly object _lock = new();
+    private static readonly object Lock = new();
     
     public void Init()
     {
@@ -30,7 +30,7 @@ public class PgVectorStorage(VsContext context, ILogger<PgVectorStorage> logger)
 
     public Task<VideoMeta> GetNextNotIndexed()
     {
-        lock (_lock)
+        lock (Lock)
         {
             VideoMeta video = context.VideoMetas
                 .OrderBy(m => m.CreatedAt)
