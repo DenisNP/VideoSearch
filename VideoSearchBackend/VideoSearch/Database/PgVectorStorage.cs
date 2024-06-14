@@ -8,6 +8,8 @@ namespace VideoSearch.Database;
 
 public class PgVectorStorage(VsContext context, ILogger<PgVectorStorage> logger) : IStorage
 {
+    private readonly object _lock = new();
+    
     public void Init()
     {
         context.Database.EnsureCreated();
@@ -26,23 +28,25 @@ public class PgVectorStorage(VsContext context, ILogger<PgVectorStorage> logger)
         await context.SaveChangesAsync();
     }
 
-    public async Task<VideoMeta> GetNextNotIndexed()
+    public Task<VideoMeta> GetNextNotIndexed()
     {
-        VideoMeta video = await context.VideoMetas
-            .AsNoTracking()
-            .OrderBy(m => m.CreatedAt)
-            .FirstOrDefaultAsync(m => m.Status != VideoIndexStatus.Indexed
-                                      && m.Status != VideoIndexStatus.Error);
-
-        if (video == null)
+        lock (_lock)
         {
-            return null;
-        }
+            VideoMeta video = context.VideoMetas
+                .OrderBy(m => m.CreatedAt)
+                .FirstOrDefault(m => m.Status != VideoIndexStatus.Indexed
+                                          && m.Status != VideoIndexStatus.Error);
 
-        video.Status = VideoIndexStatus.Queued;
-        await UpdateMeta(video);
-        context.ChangeTracker.Clear();
-        return video;
+            if (video == null)
+            {
+                return null;
+            }
+
+            video.Status = VideoIndexStatus.Queued;
+            context.SaveChanges();
+            context.ChangeTracker.Clear();
+            return Task.FromResult(video);
+        }
     }
 
     public async Task AddIndex(VideoIndex index)
