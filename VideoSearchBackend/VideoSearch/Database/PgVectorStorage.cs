@@ -34,14 +34,14 @@ public class PgVectorStorage(VsContext context, ILogger<PgVectorStorage> logger)
         {
             VideoMeta video = context.VideoMetas
                 .OrderBy(m => m.CreatedAt)
-                .FirstOrDefault(m => m.Status == VideoIndexStatus.Idle);
+                .FirstOrDefault(m => m.Status == VideoIndexStatus.Queued);
 
             if (video == null)
             {
                 return null;
             }
 
-            video.Status = VideoIndexStatus.Queued;
+            video.Status = VideoIndexStatus.Processing;
             context.SaveChanges();
             context.ChangeTracker.Clear();
             return Task.FromResult(video);
@@ -51,11 +51,16 @@ public class PgVectorStorage(VsContext context, ILogger<PgVectorStorage> logger)
     public async Task ClearQueued()
     {
         List<VideoMeta> queued = await context.VideoMetas
-            .Where(m => m.Status == VideoIndexStatus.Queued)
+            .Where(m => m.Status == VideoIndexStatus.Processing)
             .ToListAsync();
         
-        queued.ForEach(m => m.Status = VideoIndexStatus.Idle);
+        queued.ForEach(m => m.Status = VideoIndexStatus.Queued);
         await context.SaveChangesAsync();
+    }
+
+    public async Task<List<VideoMeta>> GetAllIndexed()
+    {
+        return await context.VideoMetas.Where(m => m.Status == VideoIndexStatus.Indexed).ToListAsync();
     }
 
     public async Task AddIndex(VideoIndex index)
@@ -111,7 +116,7 @@ public class PgVectorStorage(VsContext context, ILogger<PgVectorStorage> logger)
         return await context.VideoMetas
             .OrderBy(m => m.Status)
             .ThenByDescending(m => m.StatusChangedAt)
-            .Where(m => m.Status != VideoIndexStatus.Idle)
+            .Where(m => m.Status != VideoIndexStatus.Queued)
             .Skip(offset)
             .Take(count)
             .ToListAsync();

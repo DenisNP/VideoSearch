@@ -1,8 +1,8 @@
 ﻿using Pgvector;
 using VideoSearch.Database.Abstract;
 using VideoSearch.Database.Models;
+using VideoSearch.External.KMeans;
 using VideoSearch.Indexer.Abstract;
-using VideoSearch.KMeans;
 using VideoSearch.Vectorizer.Abstract;
 using VideoSearch.Vectorizer.Models;
 
@@ -25,28 +25,34 @@ public class CreateIndexStep(ILogger logger) : BaseIndexStep(logger)
         var vectorizer = serviceProvider.GetRequiredService<IVectorizerService>();
 
         var request = new VectorizeRequest(tokens);
-        var vectors = await vectorizer.Vectorize(request);
+        List<VectorizedWord> vectors = await vectorizer.Vectorize(request);
 
-        var nonZero = vectors
-            .Where(v => v.Vector.Length > 0)
-            .ToList();
+        record.Keywords = vectors.Select(v => v.Word).ToList();
 
-        record.Keywords = new();
-        
-        List<DataVec> points = nonZero
+        List<DataVec> points = vectors
             .Select(v => new DataVec(v.Vector.Select(x => (double)x).ToArray()){ Word = v.Word })
             .ToList();
 
-        // create clusters
-        KMeansClustering cl = new KMeansClustering(points.ToArray(), Math.Clamp(points.Count / 12, 2, 4));
-        Cluster[] clusters =  cl.Compute();
+        // run indexing
+        Cluster[] clusters = Clasterize(points);
+        await CreateIndices(clusters, record, storage);
+        AddHints(record.Keywords, serviceProvider);
+    }
 
-        var maxClusterPoints = clusters.Select(c => c.Points.Count).MaxBy(x => x);
+    private void AddHints(IEnumerable<string> keywords, IServiceProvider serviceProvider)
+    {
+        var hintService = serviceProvider.GetRequiredService<IHintService>();
+        hintService.AddToIndex(keywords);
+    }
 
-        foreach (Cluster cluster in clusters/*.Where(c => c.Points.Count >= maxClusterPoints / 2)*/)
+    private async Task CreateIndices(Cluster[] clusters, VideoMeta record, IStorage storage)
+    {
+        record.Centroids = new();
+
+        foreach (Cluster cluster in clusters)
         {
-            var word = cluster.MostCenterPoint().Word;
-            record.Keywords.Add(word);
+            string word = cluster.MostCenterPoint().Word;
+            record.Centroids.Add(word);
 
             await storage.AddIndex(new VideoIndex
             {
@@ -58,5 +64,16 @@ public class CreateIndexStep(ILogger logger) : BaseIndexStep(logger)
                 Type = VideoIndexType.Video
             });
         }
+    }
+
+    private Cluster[] Clasterize(List<DataVec> points)
+    {
+        var cl = new KMeansClustering(points.ToArray(), Math.Clamp(points.Count / 12, 2, 4));
+        Cluster[] clusters =  cl.Compute();
+
+        int maxClusterPoints = clusters.Select(c => c.Points.Count).MaxBy(x => x);
+        int minimumPoints = Math.Max(2, maxClusterPoints / 10);
+
+        return clusters.Where(c => c.Points.Count >= minimumPoints).ToArray();
     }
 }

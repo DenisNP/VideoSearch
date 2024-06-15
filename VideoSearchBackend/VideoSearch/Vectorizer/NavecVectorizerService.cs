@@ -10,7 +10,7 @@ public class NavecVectorizerService(string? baseUrl) : IVectorizerService
     private readonly string _baseUrl = baseUrl
         ?? throw new Exception(nameof(NavecVectorizerService) + " " + nameof(baseUrl) + " is null");
 
-    public async Task<List<VectorizedWord>> Vectorize(VectorizeRequest request)
+    public async Task<List<VectorizedWord>> Vectorize(VectorizeRequest request, bool keepEmptyVectors = false)
     {
         using var httpClient = new HttpClient();
         httpClient.Timeout = TimeSpan.FromMinutes(5);
@@ -29,9 +29,15 @@ public class NavecVectorizerService(string? baseUrl) : IVectorizerService
         }
 
         string jsonResponse = await httpResponse.Content.ReadAsStringAsync();
-        return JsonSerializer.Deserialize<List<VectorizedWord>>(
+        List<VectorizedWord> result = JsonSerializer.Deserialize<List<VectorizedWord>>(
             jsonResponse,
             new JsonSerializerOptions { PropertyNameCaseInsensitive = true }
         ) ?? throw new Exception("Failed to deserialize response");
+
+        if (!keepEmptyVectors)
+        {
+            result.RemoveAll(v => v.Vector.Length == 0);
+        }
+        return result;
     }
 }

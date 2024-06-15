@@ -2,22 +2,23 @@
 using VideoSearch.Database.Abstract;
 using VideoSearch.Database.Models;
 using VideoSearch.Indexer;
+using VideoSearch.Indexer.Abstract;
 using VideoSearch.Indexer.Models;
 
 namespace VideoSearch.Controllers;
 
 [ApiController]
 [Route("api")]
-public class ApiController(IStorage storage, SearchService searchService) : ControllerBase
+public class ApiController(IStorage storage, SearchService searchService, IHintService hintService) : ControllerBase
 {
-    [HttpGet("/GetIndexing")]
-    public async Task<IndexingResult> GetIndexing([FromQuery] int count, [FromQuery] int offset = 0)
+    [HttpGet("/GetQueue")]
+    public async Task<IndexingResult> GetQueue([FromQuery] int count, [FromQuery] int offset = 0)
     {
         List<VideoMeta> videos = await storage.ListIndexingVideos(offset, count);
         var statuses = new[]
         {
-            // VideoIndexStatus.Added,
             VideoIndexStatus.Queued,
+            VideoIndexStatus.Processing,
             VideoIndexStatus.Indexed,
             VideoIndexStatus.Error
         };
@@ -36,6 +37,12 @@ public class ApiController(IStorage storage, SearchService searchService) : Cont
     public Task<List<SearchResult>> Search([FromQuery] string q)
     {
         return searchService.Search(q);
+    }
+
+    [HttpGet("/Hints")]
+    public Task<List<string>> Hints([FromQuery] string q)
+    {
+        return Task.FromResult(hintService.GetHintsFor(q));
     }
 }
 

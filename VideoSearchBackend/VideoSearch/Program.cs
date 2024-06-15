@@ -1,6 +1,7 @@
 using VideoSearch.Database;
 using VideoSearch.Database.Abstract;
 using VideoSearch.Indexer;
+using VideoSearch.Indexer.Abstract;
 using VideoSearch.Translator;
 using VideoSearch.Vectorizer;
 using VideoSearch.VideoDescriber;
@@ -21,6 +22,7 @@ builder.Services.AddVectorizer(Environment.GetEnvironmentVariable("NAVEC_API_URL
 builder.Services.AddDatabase();
 builder.Services.AddHostedService<IndexerService>();
 builder.Services.AddSingleton<SearchService>();
+builder.Services.AddSingleton<IHintService, HintService>();
 
 // build
 WebApplication app = builder.Build();
@@ -33,6 +35,7 @@ app.UseStaticFiles();
 app.UseCors(policyBuilder => policyBuilder.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod());
 
 app.Services.GetRequiredService<IStorage>().Init();
+await app.Services.GetRequiredService<IHintService>().WarmUp();
 
 app.MapControllers();
 app.Run();

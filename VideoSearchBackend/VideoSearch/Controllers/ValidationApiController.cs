@@ -37,7 +37,7 @@ public class ValidationApiController(IStorage storage, SearchService searchServi
                 Status = VideoIndexStatus.Queued,
                 Url = video.Link
             });
-            return Ok(video);
+            return Ok();
         }
         catch (Exception ex)
         {
@@ -55,9 +55,9 @@ public class ValidationApiController(IStorage storage, SearchService searchServi
             return BadRequest("Empty search query");
         }
 
-        var searchResults = await searchService.Search(text);
+        List<SearchResult> searchResults = await searchService.Search(text);
         
-        var results = searchResults.Select(result => new Video(
+        List<Video> results = searchResults.Select(result => new Video(
             result.Video.Url,
             string.Join(" ", result.Video.Keywords.Select(k => $"#{k}"))
         )).ToList();

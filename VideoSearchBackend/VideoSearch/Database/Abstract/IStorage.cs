@@ -10,6 +10,7 @@ public interface IStorage
     public Task UpdateMeta(VideoMeta meta);
     public Task<VideoMeta> GetNextNotIndexed();
     public Task ClearQueued();
+    public Task<List<VideoMeta>> GetAllIndexed();
 
     public Task AddIndex(VideoIndex index);
     public Task<List<(VideoMeta video, double distance)>> Search(float[] vector, float tolerance, int indexSearchCount = 100);

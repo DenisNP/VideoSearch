@@ -4,5 +4,5 @@ namespace VideoSearch.Vectorizer.Abstract;
 
 public interface IVectorizerService
 {
-    public Task<List<VectorizedWord>> Vectorize(VectorizeRequest request);
+    public Task<List<VectorizedWord>> Vectorize(VectorizeRequest request, bool keepEmptyVectors = false);
 }

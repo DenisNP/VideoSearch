@@ -16,12 +16,13 @@ public class VideoMeta
     [JsonIgnore]
     public string Stt { get; set; }
     public List<string> Keywords { get; set; }
+    public List<string> Centroids { get; set; }
 }
 
 public enum VideoIndexStatus
 {
-    Idle,
     Queued,
+    Processing,
     Described,
     Translated,
     Indexed,
