@@ -10,7 +10,7 @@ namespace VideoSearch.Controllers;
 [Route("/validation-api")]
 public class ValidationApiController(IStorage storage, SearchService searchService) : ControllerBase
 {
-    [HttpPost("/index")]
+    [HttpPost("index")]
     [ProducesResponseType(typeof(Video), 200)]
     [ProducesResponseType(400)]
     [ProducesResponseType(422)]
@@ -44,7 +44,7 @@ public class ValidationApiController(IStorage storage, SearchService searchServi
         }
     }
 
-    [HttpGet("/search")]
+    [HttpGet("search")]
     [ProducesResponseType(typeof(List<Video>), 200)]
     [ProducesResponseType(400)]
     public async Task<IActionResult> SearchVideo([FromQuery] string text)

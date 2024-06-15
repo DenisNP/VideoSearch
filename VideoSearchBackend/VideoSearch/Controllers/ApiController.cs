@@ -11,7 +11,7 @@ namespace VideoSearch.Controllers;
 [Route("/api")]
 public class ApiController(IStorage storage, SearchService searchService, IHintService hintService) : ControllerBase
 {
-    [HttpGet("/GetQueue")]
+    [HttpGet("GetQueue")]
     public async Task<IndexingResult> GetQueue([FromQuery] int count, [FromQuery] int offset = 0)
     {
         List<VideoMeta> videos = await storage.ListIndexingVideos(offset, count);
@@ -34,13 +34,13 @@ public class ApiController(IStorage storage, SearchService searchService, IHintS
         return result;
     }
 
-    [HttpGet("/Search")]
+    [HttpGet("Search")]
     public Task<List<SearchResult>> Search([FromQuery] string q)
     {
         return searchService.Search(q);
     }
 
-    [HttpGet("/Hints")]
+    [HttpGet("Hints")]
     public Task<List<string>> Hints([FromQuery] string q)
     {
         return Task.FromResult(hintService.GetHintsFor(q));
