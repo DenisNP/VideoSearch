@@ -11,39 +11,38 @@ public class HintService(IStorage storage, ILogger<HintService> logger) : IHintS
     private const int ThrottlePeriodMs = 5000;
     
     private Dawg<bool> _dawg;
-    private readonly DawgBuilder<bool> _builder = new();
     private readonly ThrottleDispatcher _throttleDispatcher = new(ThrottlePeriodMs);
 
-    public async Task WarmUp()
+    public async Task Rebuild()
     {
+        var builder = new DawgBuilder<bool>();
+
         List<VideoMeta> allMetas = await storage.GetAllIndexed();
         foreach (VideoMeta videoMeta in allMetas)
         {
-            AddToIndex(videoMeta.Keywords, true);
+            foreach (string keyword in videoMeta.Keywords)
+            {
+                builder.Insert(keyword, true);
+            }
         }
 
         var startTime = DateTime.UtcNow;
-        _dawg = _builder.BuildDawg();
+        _dawg = builder.BuildDawg();
         var elapsed = DateTime.UtcNow - startTime;
 
         logger.LogInformation(
-            "Hint indices built for {Count} keywords in {Time} ms",
+            "Hint indices rebuilt for {Count} keywords in {Time} ms",
             _dawg.GetNodeCount(),
             elapsed.TotalMilliseconds
         );
     }
 
-    public void AddToIndex(IEnumerable<string> keywords, bool disableRebuild = false)
+    public void NotifyIndexUpdated()
     {
-        foreach (string keyword in keywords)
+        _throttleDispatcher.ThrottleAsync(async () =>
         {
-            _builder.Insert(keyword, true);
-        }
-
-        if (!disableRebuild)
-        {
-            _throttleDispatcher.Throttle(() => { _dawg = _builder.BuildDawg(); });
-        }
+            await Rebuild();
+        });
     }
 
     public List<string> GetHintsFor(string query)

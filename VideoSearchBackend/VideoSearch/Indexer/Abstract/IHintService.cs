@@ -2,7 +2,7 @@ namespace VideoSearch.Indexer.Abstract;
 
 public interface IHintService
 {
-    public void AddToIndex(IEnumerable<string> keywords, bool disableRebuild = false);
-    public Task WarmUp();
+    public void NotifyIndexUpdated();
+    public Task Rebuild();
     public List<string> GetHintsFor(string query);
 }

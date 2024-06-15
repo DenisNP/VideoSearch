@@ -23,6 +23,7 @@ public class CreateIndexStep(ILogger logger) : BaseIndexStep(logger)
             .ToArray();
 
         var vectorizer = serviceProvider.GetRequiredService<IVectorizerService>();
+        var hintService = serviceProvider.GetRequiredService<IHintService>();
 
         var request = new VectorizeRequest(tokens);
         List<VectorizedWord> vectors = await vectorizer.Vectorize(request);
@@ -36,13 +37,7 @@ public class CreateIndexStep(ILogger logger) : BaseIndexStep(logger)
         // run indexing
         Cluster[] clusters = Clasterize(points);
         await CreateIndices(clusters, record, storage);
-        AddHints(record.Keywords, serviceProvider);
-    }
-
-    private void AddHints(IEnumerable<string> keywords, IServiceProvider serviceProvider)
-    {
-        var hintService = serviceProvider.GetRequiredService<IHintService>();
-        hintService.AddToIndex(keywords);
+        hintService.NotifyIndexUpdated();
     }
 
     private async Task CreateIndices(Cluster[] clusters, VideoMeta record, IStorage storage)
@@ -69,7 +64,7 @@ public class CreateIndexStep(ILogger logger) : BaseIndexStep(logger)
 
     private Cluster[] Clasterize(List<DataVec> points)
     {
-        var cl = new KMeansClustering(points.ToArray(), Math.Clamp(points.Count / 12, 2, 4));
+        var cl = new KMeansClustering(points.ToArray(), Math.Clamp(points.Count / 12, Math.Min(2, points.Count), 4));
         Cluster[] clusters =  cl.Compute();
 
         int maxClusterPoints = clusters.Select(c => c.Points.Count).MaxBy(x => x);

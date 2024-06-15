@@ -172,9 +172,7 @@ public class PgVectorStorage(VsContext context, ILogger<PgVectorStorage> logger)
     public async Task<List<VideoMeta>> ListIndexingVideos(int offset, int count)
     {
         return await context.VideoMetas
-            .OrderBy(m => m.Status)
-            .ThenByDescending(m => m.StatusChangedAt)
-            .Where(m => m.Status != VideoIndexStatus.Queued)
+            .OrderByDescending(m => m.CreatedAt)
             .Skip(offset)
             .Take(count)
             .ToListAsync();
