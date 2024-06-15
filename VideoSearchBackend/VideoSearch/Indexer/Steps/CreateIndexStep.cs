@@ -23,6 +23,7 @@ public class CreateIndexStep(ILogger logger) : BaseIndexStep(logger)
             .ToArray();
 
         var vectorizer = serviceProvider.GetRequiredService<IVectorizerService>();
+        var hintService = serviceProvider.GetRequiredService<IHintService>();
 
         var request = new VectorizeRequest(tokens);
         List<VectorizedWord> vectors = await vectorizer.Vectorize(request);
@@ -36,13 +37,7 @@ public class CreateIndexStep(ILogger logger) : BaseIndexStep(logger)
         // run indexing
         Cluster[] clusters = Clasterize(points);
         await CreateIndices(clusters, record, storage);
-        AddHints(record.Keywords, serviceProvider);
-    }
-
-    private void AddHints(IEnumerable<string> keywords, IServiceProvider serviceProvider)
-    {
-        var hintService = serviceProvider.GetRequiredService<IHintService>();
-        hintService.AddToIndex(keywords);
+        hintService.NotifyIndexUpdated();
     }
 
     private async Task CreateIndices(Cluster[] clusters, VideoMeta record, IStorage storage)

@@ -16,7 +16,7 @@ public class ValidationApiController(IStorage storage, SearchService searchServi
     [ProducesResponseType(422)]
     public async Task<IActionResult> AddIndex([FromBody] Video video)
     {
-        if (video == null || string.IsNullOrEmpty(video.Link) || string.IsNullOrEmpty(video.Description))
+        if (video == null || string.IsNullOrEmpty(video.Link))
         {
             return BadRequest("Invalid input");
         }

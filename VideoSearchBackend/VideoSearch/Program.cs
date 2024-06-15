@@ -37,7 +37,7 @@ app.UseStaticFiles();
 app.UseCors(policyBuilder => policyBuilder.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod());
 
 app.Services.GetRequiredService<IStorage>().Init();
-await app.Services.GetRequiredService<IHintService>().WarmUp();
+await app.Services.GetRequiredService<IHintService>().Rebuild();
 
 app.MapControllers();
 app.Run();
