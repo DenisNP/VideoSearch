@@ -14,11 +14,9 @@ public class PgVectorStorage(VsContext context, ILogger<PgVectorStorage> logger)
     {
         context.Database.EnsureCreated();
         logger.LogInformation("Database initialized");
-
-        PreloadData().Wait();
     }
 
-    private async Task PreloadData()
+    /*private async Task PreloadData()
     {
         string[] lines = await File.ReadAllLinesAsync("yappy_hackaton_2024_400k.csv");
         int count = 0;
@@ -64,7 +62,7 @@ public class PgVectorStorage(VsContext context, ILogger<PgVectorStorage> logger)
         }
 
         await context.VideoMetas.Where(m => m.Status == VideoIndexStatus.Unknown).ExecuteDeleteAsync();
-    }
+    }*/
 
     public async Task AddMeta(VideoMeta meta)
     {
@@ -118,7 +116,9 @@ public class PgVectorStorage(VsContext context, ILogger<PgVectorStorage> logger)
 
     public async Task<List<VideoMeta>> GetAllIndexed()
     {
-        return await context.VideoMetas.Where(m => m.Status == VideoIndexStatus.VideoIndexed).ToListAsync();
+        return await context.VideoMetas
+            .Where(m => m.Status == VideoIndexStatus.VideoIndexed || m.Status == VideoIndexStatus.FullIndexed)
+            .ToListAsync();
     }
 
     public async Task AddIndex(VideoIndex index)

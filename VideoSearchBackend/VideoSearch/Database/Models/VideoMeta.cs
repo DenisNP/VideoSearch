@@ -27,6 +27,5 @@ public enum VideoIndexStatus
     Translated,
     VideoIndexed,
     FullIndexed = 99,
-    Error = -1,
-    Unknown = -2,
+    Error = -1
 }
