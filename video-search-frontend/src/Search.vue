@@ -10,7 +10,7 @@ const onSearch = async () => {
   results.value = await search(query.value);
 };
 
-const hintsToShow = ref([]);
+const hintsToShow = ref([] as string[]);
 const showHints = async () => {
   if (!query.value) {
     return;
@@ -24,11 +24,11 @@ const showHints = async () => {
     words[Math.max(Math.floor(words.length / 2) - 1, 0)],
     words[words.length - 1]
   ];
-  const toShow = [...new Set(toShowRaw)];
+  const toShow: string[] = [...new Set(toShowRaw)];
   hintsToShow.value = toShow;
 };
 
-const getHint = (h, idx) => {
+const getHint = (h: string, idx: number) => {
   return h + (idx === 0 ? ' <span style="color: #b3b3b3">(tab)</span>' : '' );
 };
 
