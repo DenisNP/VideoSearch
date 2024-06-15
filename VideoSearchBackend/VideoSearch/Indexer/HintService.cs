@@ -23,7 +23,7 @@ public class HintService(IStorage storage, ILogger<HintService> logger) : IHintS
         }
 
         var startTime = DateTime.UtcNow;
-        Rebuild();
+        _dawg = _builder.BuildDawg();
         var elapsed = DateTime.UtcNow - startTime;
 
         logger.LogInformation(
@@ -42,13 +42,8 @@ public class HintService(IStorage storage, ILogger<HintService> logger) : IHintS
 
         if (!disableRebuild)
         {
-            Rebuild();
+            _throttleDispatcher.Throttle(() => { _dawg = _builder.BuildDawg(); });
         }
-    }
-
-    private void Rebuild()
-    {
-        _throttleDispatcher.Throttle(() => { _dawg = _builder.BuildDawg(); });
     }
 
     public List<string> GetHintsFor(string query)
