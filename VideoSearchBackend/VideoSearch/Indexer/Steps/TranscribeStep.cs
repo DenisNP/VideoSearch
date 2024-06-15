@@ -2,7 +2,9 @@ using VideoSearch.Database.Abstract;
 using VideoSearch.Database.Models;
 using VideoSearch.Indexer.Abstract;
 using VideoSearch.Vectorizer.Abstract;
+using VideoSearch.Vectorizer.Models;
 using VideoSearch.VideoTranscriber.Abstract;
+using VideoSearch.VideoTranscriber.Models;
 
 namespace VideoSearch.Indexer.Steps;
 
@@ -16,22 +18,17 @@ public class TranscribeStep(ILogger logger) : BaseIndexStep(logger)
         var videoTranscriberService = serviceProvider.GetRequiredService<IVideoTranscriberService>();
         var vectorizer = serviceProvider.GetRequiredService<IVectorizerService>();
 
-        // вызвать транскрибирование
-        var transcribeRequest = new TranscribeVideoRequest { VideoMeta = record };
+        var transcribeRequest = new TranscribeVideoRequest(record.Url);
         var transcribeResult = await videoTranscriberService.Transcribe(transcribeRequest);
 
-        // вызвать для этих слов вектора и оставить только те что вернулись, значит для них есть вектора
-        var words = transcribeResult.Words;
+        var words = transcribeResult.Result?.ToArray();
         var vectorizeRequest = new VectorizeRequest(words);
         var vectorizeResult = await vectorizer.Vectorize(vectorizeRequest);
 
-        // записать ключевые слова в record.Stt (изначально это поле NULL)
-        record.Stt = vectorizeResult.Select(v => v.Word).ToList();
+        record.SttKeywords = vectorizeResult.Select(v => v.Word).ToList();
 
-        // удалить все существующие STT-индексы для этого видео
         await storage.RemoveIndicesFor(record.Id, VideoIndexType.Stt);
 
-        // для каждого ключевого слова создать новую запись с вектором
         foreach (var vectorizedWord in vectorizeResult)
         {
             await storage.AddIndex(new VideoIndex
@@ -39,7 +36,7 @@ public class TranscribeStep(ILogger logger) : BaseIndexStep(logger)
                 Id = Guid.NewGuid(),
                 VideoMetaId = record.Id,
                 Word = vectorizedWord.Word,
-                Vector = vectorizedWord.Vector,
+                Vector = new Pgvector.Vector(vectorizedWord.Vector),
                 ClusterSize = 1,
                 Type = VideoIndexType.Stt
             });

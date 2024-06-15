@@ -1,3 +1,5 @@
+using System.Text;
+using System.Text.Json;
 using Microsoft.AspNetCore.Routing.Template;
 using VideoSearch.VideoTranscriber.Abstract;
 using VideoSearch.VideoTranscriber.Models;
@@ -6,7 +8,10 @@ namespace VideoSearch.VideoTranscriber;
 
 public class GigaAmVideoTranscriberService(string? baseUrl) : IVideoTranscriberService
 {
-    public async Task<TemplateValuesResult> Transcribe(TranscribeVideoRequest request)
+    private readonly string _baseUrl = baseUrl ?? throw 
+        new Exception(nameof(GigaAmVideoTranscriberService) + " " + nameof(baseUrl) + " is null");
+
+    public async Task<TranscribeVideoResponse> Transcribe(TranscribeVideoRequest request)
     {
         using var httpClient = new HttpClient();
         httpClient.Timeout = TimeSpan.FromMinutes(1);
@@ -21,14 +26,21 @@ public class GigaAmVideoTranscriberService(string? baseUrl) : IVideoTranscriberS
 
         if (!httpResponse.IsSuccessStatusCode)
         {
-            throw new Exception($"Request failed with status code {httpResponse.StatusCode}");
+            return new TranscribeVideoResponse(null, $"Request failed with status code {httpResponse.StatusCode}");
         }
 
         string jsonResponse = await httpResponse.Content.ReadAsStringAsync();
 
-        return JsonSerializer.Deserialize<TemplateValuesResult>(
+        var result = JsonSerializer.Deserialize<List<string>>(
             jsonResponse,
             new JsonSerializerOptions { PropertyNameCaseInsensitive = true }
-        ) ?? throw new Exception("Failed to deserialize response");
+        );
+
+        if (result == null)
+        {
+            return new TranscribeVideoResponse(null, "Failed to deserialize response");
+        }
+
+        return new TranscribeVideoResponse(result, null);
     }
 }
