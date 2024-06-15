@@ -20,6 +20,7 @@ public class ApiController(IStorage storage, SearchService searchService, IHintS
             VideoIndexStatus.Queued,
             VideoIndexStatus.Processing,
             VideoIndexStatus.VideoIndexed,
+            VideoIndexStatus.FullIndexed,
             VideoIndexStatus.Error
         };
 
