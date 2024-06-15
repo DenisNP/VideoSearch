@@ -5,6 +5,7 @@ using VideoSearch.Indexer.Abstract;
 using VideoSearch.Translator;
 using VideoSearch.Vectorizer;
 using VideoSearch.VideoDescriber;
+using VideoSearch.VideoTranscriber;
 
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 
@@ -16,6 +17,7 @@ builder.Services.AddSwaggerGen();
 
 // application
 builder.Services.AddVideoDescriber(Environment.GetEnvironmentVariable("VIDEO_DESCRIBER_URL"));
+builder.Services.AddVideoTranscriber(Environment.GetEnvironmentVariable("VIDEO_TRANSCRIBER_URL"));
 builder.Services.AddTranslator(Environment.GetEnvironmentVariable("LIBRE_TRANSLATE_URL"));
 builder.Services.AddVectorizer(Environment.GetEnvironmentVariable("NAVEC_API_URL"));
 

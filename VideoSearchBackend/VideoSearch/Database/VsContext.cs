@@ -37,6 +37,12 @@ public class VsContext : DbContext
             .HasKey(i => i.Id);
 
         modelBuilder.Entity<VideoIndex>()
+            .HasIndex(i => i.Type);
+        
+        modelBuilder.Entity<VideoIndex>()
+            .HasIndex(i => i.VideoMetaId);
+
+        modelBuilder.Entity<VideoIndex>()
             .HasIndex(i => i.Vector)
             .HasMethod("hnsw")
             .HasOperators("vector_cosine_ops")

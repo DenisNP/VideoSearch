@@ -11,7 +11,7 @@ namespace VideoSearch.Indexer.Steps;
 public class CreateIndexStep(ILogger logger) : BaseIndexStep(logger)
 {
     protected override VideoIndexStatus InitialStatus => VideoIndexStatus.Translated;
-    protected override VideoIndexStatus TargetStatus => VideoIndexStatus.Indexed;
+    protected override VideoIndexStatus TargetStatus => VideoIndexStatus.VideoIndexed;
 
     protected override async Task InternalRun(VideoMeta record, IServiceProvider serviceProvider, IStorage storage, int nThread)
     {
@@ -48,6 +48,7 @@ public class CreateIndexStep(ILogger logger) : BaseIndexStep(logger)
     private async Task CreateIndices(Cluster[] clusters, VideoMeta record, IStorage storage)
     {
         record.Centroids = new();
+        await storage.RemoveIndicesFor(record.Id, VideoIndexType.Video);
 
         foreach (Cluster cluster in clusters)
         {

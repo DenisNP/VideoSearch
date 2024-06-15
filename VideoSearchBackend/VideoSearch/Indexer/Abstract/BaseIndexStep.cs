@@ -20,10 +20,14 @@ public abstract class BaseIndexStep(ILogger logger)
         try
         {
             await InternalRun(record, scope.ServiceProvider, storage, nThread);
-            record.Status = TargetStatus;
-            record.StatusChangedAt = DateTime.UtcNow;
-            await storage.UpdateMeta(record);
 
+            if (InitialStatus != TargetStatus)
+            {
+                record.Status = TargetStatus;
+                record.StatusChangedAt = DateTime.UtcNow;
+            }
+
+            await storage.UpdateMeta(record);
             return true;
         }
         catch (Exception e)

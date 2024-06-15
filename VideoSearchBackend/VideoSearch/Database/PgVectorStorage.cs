@@ -28,7 +28,7 @@ public class PgVectorStorage(VsContext context, ILogger<PgVectorStorage> logger)
         await context.SaveChangesAsync();
     }
 
-    public Task<VideoMeta> GetNextNotIndexed()
+    public Task<VideoMeta> GetNextQueued()
     {
         lock (Lock)
         {
@@ -48,6 +48,14 @@ public class PgVectorStorage(VsContext context, ILogger<PgVectorStorage> logger)
         }
     }
 
+    public async Task<VideoMeta> GetNextPartialIndexed()
+    {
+        return await context.VideoMetas
+            .OrderBy(m => m.CreatedAt)
+            .FirstOrDefaultAsync(m => m.Status != VideoIndexStatus.Error 
+                                      && m.Status != VideoIndexStatus.FullIndexed);
+    }
+
     public async Task ClearQueued()
     {
         List<VideoMeta> queued = await context.VideoMetas
@@ -60,7 +68,7 @@ public class PgVectorStorage(VsContext context, ILogger<PgVectorStorage> logger)
 
     public async Task<List<VideoMeta>> GetAllIndexed()
     {
-        return await context.VideoMetas.Where(m => m.Status == VideoIndexStatus.Indexed).ToListAsync();
+        return await context.VideoMetas.Where(m => m.Status == VideoIndexStatus.VideoIndexed).ToListAsync();
     }
 
     public async Task AddIndex(VideoIndex index)
@@ -125,5 +133,12 @@ public class PgVectorStorage(VsContext context, ILogger<PgVectorStorage> logger)
     public async Task<int> CountForStatus(VideoIndexStatus status)
     {
         return await context.VideoMetas.CountAsync(v => v.Status == status);
+    }
+
+    public async Task RemoveIndicesFor(Guid videoMetaId, VideoIndexType indexType)
+    {
+        await context.VideoIndices
+            .Where(i => i.VideoMetaId == videoMetaId && i.Type == indexType)
+            .ExecuteDeleteAsync();
     }
 }

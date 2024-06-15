@@ -19,7 +19,7 @@ public class ApiController(IStorage storage, SearchService searchService, IHintS
         {
             VideoIndexStatus.Queued,
             VideoIndexStatus.Processing,
-            VideoIndexStatus.Indexed,
+            VideoIndexStatus.VideoIndexed,
             VideoIndexStatus.Error
         };
 

@@ -13,7 +13,8 @@ public class IndexerService(ILogger<IndexerService> logger, IStorage storage, IS
     [
         new DescribeStep(logger),
         new TranslateStep(logger),
-        new CreateIndexStep(logger)
+        new CreateIndexStep(logger),
+        // new TranscribeStep(logger)
     ];
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -24,12 +25,20 @@ public class IndexerService(ILogger<IndexerService> logger, IStorage storage, IS
         logger.LogInformation("Background indexer is running...");
         await storage.ClearQueued();
 
+        await ExecuteParallelInitialIndex(stoppingToken);
+        // await ExecuteBackgroundFullIndex(stoppingToken);
+    }
+
+    private async Task ExecuteParallelInitialIndex(CancellationToken stoppingToken)
+    {
         IEnumerable<Task> tasks = Enumerable.Range(1, Parallel).Select(n => Task.Run(async () =>
         {
             using IServiceScope scope = serviceScopeFactory.CreateScope();
             while (!stoppingToken.IsCancellationRequested)
             {
-                await TryIndex(scope, n - 1);
+                var scopedStorage = scope.ServiceProvider.GetRequiredService<IStorage>();
+                VideoMeta record = await scopedStorage.GetNextQueued();
+                await TryIndex(record, scope, n - 1);
                 await Task.Delay(TimeSpan.FromMilliseconds(250), stoppingToken);
             }
         }, stoppingToken));
@@ -37,12 +46,22 @@ public class IndexerService(ILogger<IndexerService> logger, IStorage storage, IS
         await Task.WhenAll(tasks);
     }
 
-    private async Task TryIndex(IServiceScope scope, int nThread)
+    private async Task ExecuteBackgroundFullIndex(CancellationToken stoppingToken)
+    {
+        using IServiceScope scope = serviceScopeFactory.CreateScope();
+        while (!stoppingToken.IsCancellationRequested)
+        {
+            var scopedStorage = scope.ServiceProvider.GetRequiredService<IStorage>();
+            VideoMeta record = await scopedStorage.GetNextPartialIndexed();
+            await TryIndex(record, scope, -1);
+            await Task.Delay(TimeSpan.FromMilliseconds(250), stoppingToken);
+        }
+    }
+
+    private async Task TryIndex(VideoMeta record, IServiceScope scope, int nThread)
     {
         try
         {
-            var scopedStorage = scope.ServiceProvider.GetRequiredService<IStorage>();
-            VideoMeta record = await scopedStorage.GetNextNotIndexed();
             if (record != null)
             {
                 foreach (BaseIndexStep step in _steps)
