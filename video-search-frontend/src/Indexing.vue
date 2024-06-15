@@ -2,6 +2,7 @@
 import {onMounted, onUnmounted, ref} from 'vue';
 import {getQueue, addToIndex} from './api';
 import { message } from 'ant-design-vue';
+import {getItemDescription} from "@/utils";
 
 onMounted(() => {
   reload();
@@ -57,18 +58,8 @@ const addUrlToIndex = async () => {
   }
 };
 
-const getItemDescription = (item: any) => {
-  let description = '';
-  if (item.keywords && item.keywords.length) {
-    description += '<p>Ключевые слова по видео: <i>' + item.keywords.join(', ') + '</i></p>';
-  }
-  if (item.stt && item.stt.length) {
-    description += '<p>Ключевые слова по аудио: <i>' + item.stt.join(', ') + '</i></p>';
-  }
-  if (item.centroids && item.centroids.length) {
-    description += '<p>Центры кластеров: <i>' + item.centroids.join(', ') + '</i></p>';
-  }
-  return description;
+const getItemDesc = (item: any) => {
+  return getItemDescription(item);
 };
 </script>
 
@@ -106,7 +97,7 @@ const getItemDescription = (item: any) => {
         <a-tag color="warning" v-if="item.status >= 2 && item.status < 4">частично</a-tag>
         <a-tag color="default" v-if="item.status === 0">в очереди</a-tag>
       </template>
-      <div v-html="getItemDescription(item)"/>
+      <div v-html="getItemDesc(item)"/>
     </a-list-item>
   </template>
 </a-list>
