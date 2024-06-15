@@ -28,4 +28,5 @@ public enum VideoIndexStatus
     VideoIndexed,
     FullIndexed = 99,
     Error = -1,
+    Unknown = -2,
 }

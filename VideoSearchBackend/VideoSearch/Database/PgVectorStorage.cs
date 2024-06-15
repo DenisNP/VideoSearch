@@ -14,6 +14,56 @@ public class PgVectorStorage(VsContext context, ILogger<PgVectorStorage> logger)
     {
         context.Database.EnsureCreated();
         logger.LogInformation("Database initialized");
+
+        PreloadData().Wait();
+    }
+
+    private async Task PreloadData()
+    {
+        string[] lines = await File.ReadAllLinesAsync("yappy_hackaton_2024_400k.csv");
+        int count = 0;
+        foreach (string line in lines)
+        {
+            var arr = line.Split(",");
+            if (arr.Length > 0 && arr[0].StartsWith("https://") && arr[0].EndsWith(".mp4"))
+            {
+                count++;
+                var meta = await context.VideoMetas.FirstOrDefaultAsync(m => m.Url == arr[0]);
+                if (meta == null)
+                {
+                    await context.VideoMetas.AddAsync(new VideoMeta
+                    {
+                        Id = Guid.NewGuid(),
+                        CreatedAt = count <= 500 ? DateTime.UtcNow - TimeSpan.FromDays(5) : DateTime.UtcNow,
+                        StatusChangedAt = DateTime.UtcNow,
+                        Status = VideoIndexStatus.Queued,
+                        Url = arr[0],
+                        RawDescription = null,
+                        TranslatedDescription = null,
+                        Stt = null,
+                        Keywords = null,
+                        Centroids = null
+                    });
+                } 
+                else if (meta.Status == VideoIndexStatus.Unknown)
+                {
+                    meta.Status = VideoIndexStatus.Queued;
+                    await context.SaveChangesAsync();
+                }
+
+                if (count % 1000 == 0)
+                {
+                    Console.WriteLine(count);
+                }
+
+                if (count >= 20500)
+                {
+                    break;
+                }
+            }
+        }
+
+        await context.VideoMetas.Where(m => m.Status == VideoIndexStatus.Unknown).ExecuteDeleteAsync();
     }
 
     public async Task AddMeta(VideoMeta meta)
