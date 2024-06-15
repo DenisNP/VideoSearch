@@ -84,6 +84,8 @@ async def transcribe_keywords(request: TranscribeRequest):
         # Transcribe audio
         transcription = model.transcribe([audio_path])[0][0]
         weighted_keywords = kw_model.extract_keywords(transcription, keyphrase_ngram_range=(1, 1), stop_words=None)
+        weighted_keywords.sort(key=lambda x: x[1], reverse=True)
+        
         result = [tup[0] for tup in weighted_keywords]
 
         # Clean up
