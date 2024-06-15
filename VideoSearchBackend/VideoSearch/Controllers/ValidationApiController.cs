@@ -3,7 +3,6 @@ using VideoSearch.Database.Abstract;
 using VideoSearch.Database.Models;
 using VideoSearch.Indexer;
 using VideoSearch.Indexer.Models;
-using VideoSearch.Validation.Models;
 
 namespace VideoSearch.Controllers;
 
@@ -65,3 +64,5 @@ public class ValidationApiController(IStorage storage, SearchService searchServi
         return Ok(results);
     }
 }
+
+public record Video(string Link, string Description);
