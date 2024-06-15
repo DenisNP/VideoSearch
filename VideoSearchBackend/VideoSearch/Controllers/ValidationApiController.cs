@@ -7,7 +7,7 @@ using VideoSearch.Indexer.Models;
 namespace VideoSearch.Controllers;
 
 [ApiController]
-[Route("validation-api")]
+[Route("/validation-api")]
 public class ValidationApiController(IStorage storage, SearchService searchService) : ControllerBase
 {
     [HttpPost("/index")]

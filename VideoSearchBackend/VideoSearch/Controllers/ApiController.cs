@@ -8,7 +8,7 @@ using VideoSearch.Indexer.Models;
 namespace VideoSearch.Controllers;
 
 [ApiController]
-[Route("api")]
+[Route("/api")]
 public class ApiController(IStorage storage, SearchService searchService, IHintService hintService) : ControllerBase
 {
     [HttpGet("/GetQueue")]
