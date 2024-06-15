@@ -17,7 +17,7 @@ services:
         #    - 5124:8000
     backend:
         container_name: video_search_back
-        build: ./VideoSearchBackend
+        build: .
         ports:
             - 5100:8080
         depends_on:
