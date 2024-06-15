@@ -156,7 +156,7 @@ public class PgVectorStorage(VsContext context, ILogger<PgVectorStorage> logger)
             .Where(m => ids.Contains(m.Id))
             .ToListAsync();
         
-//#if DEBUG
+#if DEBUG
         foreach (var v in videos.OrderBy(v => bestDistances[v.Id]).Take(10))
         {
             Console.WriteLine(bestDistances[v.Id]);
@@ -164,7 +164,7 @@ public class PgVectorStorage(VsContext context, ILogger<PgVectorStorage> logger)
             Console.WriteLine(string.Join(", ", v.Keywords.Take(15)));
             Console.WriteLine();
         }
-//#endif
+#endif
 
         return videos.Select(v => (video: v, distance: bestDistances[v.Id])).OrderBy(x => x.distance).ToList();
     }
