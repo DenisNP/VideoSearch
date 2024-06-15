@@ -12,7 +12,7 @@ public abstract class BaseIndexStep(ILogger logger)
     {
         if (record.Status != InitialStatus)
         {
-            return false;
+            return true;
         }
 
         var storage = scope.ServiceProvider.GetRequiredService<IStorage>();

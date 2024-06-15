@@ -5,9 +5,15 @@ using VideoSearch.Indexer.Steps;
 
 namespace VideoSearch.Indexer;
 
-public class IndexerService(ILogger<IndexerService> logger, IStorage storage, IServiceScopeFactory serviceScopeFactory) : BackgroundService
+public class IndexerService(
+    ILogger<IndexerService> logger,
+    IStorage storage,
+    IServiceScopeFactory serviceScopeFactory
+    ) : BackgroundService
 {
     private const int Parallel = 3;
+    private const int SequentialErrorsAllowed = 10;
+    private int _attempts = 0;
     
     private readonly BaseIndexStep[] _steps =
     [
@@ -26,11 +32,13 @@ public class IndexerService(ILogger<IndexerService> logger, IStorage storage, IS
         await storage.ClearQueued();
 
         await ExecuteParallelInitialIndex(stoppingToken);
-        // await ExecuteBackgroundFullIndex(stoppingToken);
+        // await ExecuteSequentialFullIndex(stoppingToken);
     }
 
     private async Task ExecuteParallelInitialIndex(CancellationToken stoppingToken)
     {
+        logger.LogInformation("Parallel initial index running...");
+
         IEnumerable<Task> tasks = Enumerable.Range(1, Parallel).Select(n => Task.Run(async () =>
         {
             using IServiceScope scope = serviceScopeFactory.CreateScope();
@@ -46,8 +54,10 @@ public class IndexerService(ILogger<IndexerService> logger, IStorage storage, IS
         await Task.WhenAll(tasks);
     }
 
-    private async Task ExecuteBackgroundFullIndex(CancellationToken stoppingToken)
+    private async Task ExecuteSequentialFullIndex(CancellationToken stoppingToken)
     {
+        logger.LogInformation("Sequential full index running...");
+        
         using IServiceScope scope = serviceScopeFactory.CreateScope();
         while (!stoppingToken.IsCancellationRequested)
         {
@@ -60,20 +70,21 @@ public class IndexerService(ILogger<IndexerService> logger, IStorage storage, IS
 
     private async Task TryIndex(VideoMeta record, IServiceScope scope, int nThread)
     {
-        try
+        if (record != null)
         {
-            if (record != null)
+            foreach (BaseIndexStep step in _steps)
             {
-                foreach (BaseIndexStep step in _steps)
+                if (!await step.Run(record, scope, nThread))
                 {
-                    await step.Run(record, scope, nThread);
+                    _attempts++;
+                    if (_attempts >= SequentialErrorsAllowed)
+                    {
+                        await this.StopAsync(default);
+                    }
                 }
             }
-        }
-        catch (Exception e)
-        {
-            logger.LogError(e.Message);
-            logger.LogError(e.StackTrace);
+
+            _attempts = 0;
         }
     }
 }
