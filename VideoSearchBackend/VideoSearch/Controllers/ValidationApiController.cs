@@ -34,7 +34,7 @@ public class ValidationApiController(IStorage storage, SearchService searchServi
                 Id = Guid.NewGuid(),
                 CreatedAt = DateTime.UtcNow,
                 StatusChangedAt = DateTime.UtcNow,
-                Status = VideoIndexStatus.Ready,
+                Status = VideoIndexStatus.Queued,
                 Url = video.Link
             });
             return Ok(video);
