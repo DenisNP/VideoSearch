@@ -64,7 +64,7 @@ public class CreateIndexStep(ILogger logger) : BaseIndexStep(logger)
 
     private Cluster[] Clasterize(List<DataVec> points)
     {
-        var cl = new KMeansClustering(points.ToArray(), Math.Clamp(points.Count / 12, 2, 4));
+        var cl = new KMeansClustering(points.ToArray(), Math.Clamp(points.Count / 12, Math.Min(2, points.Count), 4));
         Cluster[] clusters =  cl.Compute();
 
         int maxClusterPoints = clusters.Select(c => c.Points.Count).MaxBy(x => x);
