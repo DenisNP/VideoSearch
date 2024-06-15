@@ -15,6 +15,19 @@ public class HintService(IStorage storage, ILogger<HintService> logger) : IHintS
 
     public async Task Rebuild()
     {
+        var startTime = DateTime.UtcNow;
+        await RebuildSilent();
+        var elapsed = DateTime.UtcNow - startTime;
+
+        logger.LogInformation(
+            "Hint indices rebuilt for {Count} keywords in {Time} ms",
+            _dawg.GetNodeCount(),
+            elapsed.TotalMilliseconds
+        );
+    }
+
+    private async Task RebuildSilent()
+    {
         var builder = new DawgBuilder<bool>();
 
         List<VideoMeta> allMetas = await storage.GetAllIndexed();
@@ -26,22 +39,14 @@ public class HintService(IStorage storage, ILogger<HintService> logger) : IHintS
             }
         }
 
-        var startTime = DateTime.UtcNow;
         _dawg = builder.BuildDawg();
-        var elapsed = DateTime.UtcNow - startTime;
-
-        logger.LogInformation(
-            "Hint indices rebuilt for {Count} keywords in {Time} ms",
-            _dawg.GetNodeCount(),
-            elapsed.TotalMilliseconds
-        );
     }
 
     public void NotifyIndexUpdated()
     {
         _throttleDispatcher.ThrottleAsync(async () =>
         {
-            await Rebuild();
+            await RebuildSilent();
         });
     }
 
