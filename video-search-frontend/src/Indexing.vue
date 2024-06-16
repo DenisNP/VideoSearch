@@ -33,7 +33,7 @@ const statusNameAndStyle = (status: string) => {
     case 'VideoIndexed':
       return ['Индекс по видео', '#52c41a'];
     case 'FullIndexed':
-      return ['Индекс по видео и аудио', '#52c41a'];
+      return ['Проиндексировано', '#52c41a'];
     case 'Error':
       return ['Ошибки', '#ff4d4f'];
   }
@@ -116,7 +116,7 @@ const changeOffset = (direction: number) => {
         </template>
       </a-list-item-meta>
       <template #extra>
-        <a-tag color="success" v-if="item.status === 99">видео и аудио</a-tag>
+        <a-tag color="success" v-if="item.status === 99">проиндексировано</a-tag>
         <a-tag color="processing" v-if="item.status === 1">обработка</a-tag>
         <a-tag color="error" v-if="item.status === -1">ошибка</a-tag>
         <a-tag color="warning" v-if="item.status > 1 && item.status < 99">частично</a-tag>
