@@ -49,7 +49,7 @@ const getItemDesc = (item: any) => {
 };
 
 const getPercent = (dist: number) => {
-  const percent = Math.floor(1.0 - dist);
+  const percent = Math.floor((1.0 - dist) * 100);
   return `Совпадение: ${percent}%`;
 };
 </script>
