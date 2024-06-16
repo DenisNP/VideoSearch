@@ -56,6 +56,7 @@ const getPercent = (dist: number) => {
 
 <template>
 <a-card title="Поиск">
+  <template #extra><a href="/swagger" target="_blank">swagger</a></template>
   <a-tag v-for="(h, idx) in hintsToShow" :key="h">
     <span v-html="getHint(h, idx)"></span>
   </a-tag>
