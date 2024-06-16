@@ -58,6 +58,7 @@ const addUrlToIndex = async () => {
       if (added) {
         message.success('Поставлено в очередь');
         urlToAdd.value = '';
+        await loadList();
       } else {
         message.error('Что-то пошло не так');
       }
