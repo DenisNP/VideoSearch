@@ -91,4 +91,17 @@ public static class Utils
     {
         return clusters.Select(c => c.Points.Count).Average();
     }
+    
+    public static double GetLatinCharacterRatio(string word)
+    {
+        if (string.IsNullOrEmpty(word))
+        {
+            return 0.0;
+        }
+
+        int latinCharCount = word.Count(c => c is >= 'A' and <= 'Z' or >= 'a' and <= 'z');
+        int totalCharCount = word.Length;
+
+        return (double)latinCharCount / totalCharCount;
+    }
 }

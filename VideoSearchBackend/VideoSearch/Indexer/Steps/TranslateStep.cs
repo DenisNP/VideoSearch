@@ -8,6 +8,8 @@ namespace VideoSearch.Indexer.Steps;
 
 public class TranslateStep(ILogger logger) : BaseIndexStep(logger)
 {
+    private const double AllowedLatinRatio = 0.2;
+    
     protected override VideoIndexStatus InitialStatus => VideoIndexStatus.Described;
     protected override VideoIndexStatus TargetStatus => VideoIndexStatus.Translated;
 
@@ -24,6 +26,12 @@ public class TranslateStep(ILogger logger) : BaseIndexStep(logger)
         );
 
         TranslateResponse result = await translateService.Translate(request);
+
+        if (Utils.GetLatinCharacterRatio(result.TranslatedText) > AllowedLatinRatio)
+        {
+            throw new Exception("Text were not translated");
+        }
+
         record.TranslatedDescription = result.TranslatedText + "\n\n" + string.Join("\n", result.Alternatives);
     }
 }

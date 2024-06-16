@@ -17,10 +17,11 @@ public class IndexerService(
 
     private readonly BaseIndexStep[] _steps =
     [
+        new TryFixErrorStep(logger),
         new DescribeStep(logger),
         new TranslateStep(logger),
         new CreateIndexStep(logger),
-        //new TranscribeStep(logger)
+        new TranscribeStep(logger)
     ];
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
