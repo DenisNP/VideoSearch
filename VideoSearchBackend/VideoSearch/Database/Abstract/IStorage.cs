@@ -8,9 +8,8 @@ public interface IStorage
     
     public Task AddMeta(VideoMeta meta);
     public Task UpdateMeta(VideoMeta meta);
-    public Task<VideoMeta> GetNextQueued();
-    public Task<VideoMeta> GetNextPartialIndexed();
-    public Task ClearQueued();
+    public Task<VideoMeta> LockNextUnprocessed();
+    public Task ClearProcessing();
     public Task<List<VideoMeta>> GetAllIndexed();
 
     public Task AddIndex(VideoIndex index);

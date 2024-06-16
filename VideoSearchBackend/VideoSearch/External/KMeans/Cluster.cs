@@ -76,6 +76,11 @@
             return Points.MinBy(p => Utils.CosineDistance(p.Components, Centroid.Components));
         }
 
+        public double AvgDistanceToCenter()
+        {
+            return Points.Select(p => Utils.CosineDistance(p.Components, Centroid.Components)).Average();
+        }
+
         /// <summary>
         /// Updates centroid position in respect to cluster data data points
         /// </summary>

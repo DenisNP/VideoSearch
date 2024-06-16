@@ -1,4 +1,5 @@
 ﻿using System.Text.RegularExpressions;
+using VideoSearch.External.KMeans;
 
 namespace VideoSearch;
 
@@ -66,7 +67,7 @@ public static class Utils
             normA += Math.Pow(a[i], 2);
             normB += Math.Pow(b[i], 2);
         }
-
+    
         normA = Math.Sqrt(normA);
         normB = Math.Sqrt(normB);
 
@@ -76,13 +77,18 @@ public static class Utils
         }
 
         double cosineSimilarity = dotProduct / (normA * normB);
-        double cosineDistance = 1.0 - cosineSimilarity;
+        double cosineDistance = 1.0 - Math.Abs(cosineSimilarity);
 
         return cosineDistance;
     }
-    
+
     public static T PickRandom<T>(this IList<T> list)
     {
         return list[Random.Shared.Next(list.Count)];
+    }
+
+    public static double AveragePointsCount(this Cluster[] clusters)
+    {
+        return clusters.Select(c => c.Points.Count).Average();
     }
 }

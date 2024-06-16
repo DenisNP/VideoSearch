@@ -11,10 +11,10 @@ public class IndexerService(
     IServiceScopeFactory serviceScopeFactory
     ) : BackgroundService
 {
-    private const int Parallel = 3;
+    private const int Parallel = 1;
     private const int SequentialErrorsAllowed = 10;
     private int _attempts = 0;
-    
+
     private readonly BaseIndexStep[] _steps =
     [
         new DescribeStep(logger),
@@ -29,15 +29,13 @@ public class IndexerService(
         await Task.Delay(TimeSpan.FromSeconds(10), stoppingToken);
 
         logger.LogInformation("Background indexer is running...");
-        await storage.ClearQueued();
-
-        await ExecuteParallelInitialIndex(stoppingToken);
-        // await ExecuteSequentialFullIndex(stoppingToken);
+        await storage.ClearProcessing();
+        await ExecuteIndexing(stoppingToken);
     }
 
-    private async Task ExecuteParallelInitialIndex(CancellationToken stoppingToken)
+    private async Task ExecuteIndexing(CancellationToken stoppingToken)
     {
-        logger.LogInformation("Parallel initial index running...");
+        logger.LogInformation("Background indexing running...");
 
         IEnumerable<Task> tasks = Enumerable.Range(1, Parallel).Select(n => Task.Run(async () =>
         {
@@ -45,16 +43,16 @@ public class IndexerService(
             while (!stoppingToken.IsCancellationRequested)
             {
                 var scopedStorage = scope.ServiceProvider.GetRequiredService<IStorage>();
-                VideoMeta record = await scopedStorage.GetNextQueued();
+                VideoMeta record = await scopedStorage.LockNextUnprocessed();
                 await TryIndex(record, scope, n - 1);
-                await Task.Delay(TimeSpan.FromMilliseconds(250), stoppingToken);
+                await Task.Delay(TimeSpan.FromMilliseconds(50), stoppingToken);
             }
         }, stoppingToken));
 
         await Task.WhenAll(tasks);
     }
 
-    private async Task ExecuteSequentialFullIndex(CancellationToken stoppingToken)
+    /*private async Task ExecuteSequentialFullIndex(CancellationToken stoppingToken)
     {
         logger.LogInformation("Sequential full index running...");
         
@@ -64,9 +62,9 @@ public class IndexerService(
             var scopedStorage = scope.ServiceProvider.GetRequiredService<IStorage>();
             VideoMeta record = await scopedStorage.GetNextPartialIndexed();
             await TryIndex(record, scope, -1);
-            await Task.Delay(TimeSpan.FromMilliseconds(250), stoppingToken);
+            await Task.Delay(TimeSpan.FromMilliseconds(50), stoppingToken);
         }
-    }
+    }*/
 
     private async Task TryIndex(VideoMeta record, IServiceScope scope, int nThread)
     {

@@ -25,6 +25,10 @@ public abstract class BaseIndexStep(ILogger logger)
             {
                 record.Status = TargetStatus;
                 record.StatusChangedAt = DateTime.UtcNow;
+                if (TargetStatus == VideoIndexStatus.FullIndexed)
+                {
+                    record.Processing = false;
+                }
             }
 
             await storage.UpdateMeta(record);
@@ -34,6 +38,7 @@ public abstract class BaseIndexStep(ILogger logger)
         {
             record.Status = VideoIndexStatus.Error;
             record.StatusChangedAt = DateTime.UtcNow;
+            record.Processing = false;
             await storage.UpdateMeta(record);
             logger.LogError(e.Message);
             logger.LogError(e.StackTrace);

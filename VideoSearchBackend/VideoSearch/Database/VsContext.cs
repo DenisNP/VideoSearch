@@ -18,6 +18,8 @@ public class VsContext : DbContext
         modelBuilder.Entity<VideoMeta>()
             .HasIndex(m => m.Status);
         modelBuilder.Entity<VideoMeta>()
+            .HasIndex(m => m.Processing);
+        modelBuilder.Entity<VideoMeta>()
             .HasIndex(m => m.CreatedAt);
         modelBuilder.Entity<VideoMeta>()
             .HasIndex(m => m.StatusChangedAt);

@@ -76,41 +76,35 @@ public class PgVectorStorage(VsContext context, ILogger<PgVectorStorage> logger)
         await context.SaveChangesAsync();
     }
 
-    public Task<VideoMeta> GetNextQueued()
+    public Task<VideoMeta> LockNextUnprocessed()
     {
         lock (Lock)
         {
             VideoMeta video = context.VideoMetas
-                .OrderBy(m => m.CreatedAt)
-                .FirstOrDefault(m => m.Status == VideoIndexStatus.Queued);
+                .OrderBy(m => m.StatusChangedAt)
+                .FirstOrDefault(m => m.Status != VideoIndexStatus.Error 
+                                     && m.Status != VideoIndexStatus.FullIndexed 
+                                     && !m.Processing);
 
             if (video == null)
             {
                 return null;
             }
 
-            video.Status = VideoIndexStatus.Processing;
+            video.Processing = true;
             context.SaveChanges();
             context.ChangeTracker.Clear();
             return Task.FromResult(video);
         }
     }
 
-    public async Task<VideoMeta> GetNextPartialIndexed()
+    public async Task ClearProcessing()
     {
-        return await context.VideoMetas
-            .OrderBy(m => m.CreatedAt)
-            .FirstOrDefaultAsync(m => m.Status != VideoIndexStatus.Error 
-                                      && m.Status != VideoIndexStatus.FullIndexed);
-    }
-
-    public async Task ClearQueued()
-    {
-        List<VideoMeta> queued = await context.VideoMetas
-            .Where(m => m.Status == VideoIndexStatus.Processing)
+        List<VideoMeta> processing = await context.VideoMetas
+            .Where(m => m.Processing)
             .ToListAsync();
         
-        queued.ForEach(m => m.Status = VideoIndexStatus.Queued);
+        processing.ForEach(m => m.Processing = false);
         await context.SaveChangesAsync();
     }
 

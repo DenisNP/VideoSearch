@@ -8,6 +8,7 @@ public class VideoMeta
     public DateTime CreatedAt { get; set; }
     public DateTime StatusChangedAt { get; set; }
     public VideoIndexStatus Status { get; set; }
+    public bool Processing { get; set; } = false;
     public string Url { get; set; }
     [JsonIgnore]
     public string RawDescription { get; set; }
@@ -21,11 +22,10 @@ public class VideoMeta
 
 public enum VideoIndexStatus
 {
-    Queued,
-    Processing,
-    Described,
-    Translated,
-    VideoIndexed,
+    Queued = 0,
+    Described = 2,
+    Translated = 3,
+    VideoIndexed = 4,
     FullIndexed = 99,
     Error = -1
 }

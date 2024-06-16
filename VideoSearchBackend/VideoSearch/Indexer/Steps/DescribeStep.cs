@@ -8,7 +8,7 @@ namespace VideoSearch.Indexer.Steps;
 
 public class DescribeStep(ILogger logger) : BaseIndexStep(logger)
 {
-    protected override VideoIndexStatus InitialStatus => VideoIndexStatus.Processing;
+    protected override VideoIndexStatus InitialStatus => VideoIndexStatus.Queued;
     protected override VideoIndexStatus TargetStatus => VideoIndexStatus.Described;
 
     private const string Prompt = "Provide a list of keywords describing this video. Only list, no title text.";

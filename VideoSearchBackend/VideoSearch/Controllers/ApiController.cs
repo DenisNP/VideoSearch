@@ -18,7 +18,6 @@ public class ApiController(IStorage storage, SearchService searchService, IHintS
         var statuses = new[]
         {
             VideoIndexStatus.Queued,
-            VideoIndexStatus.Processing,
             VideoIndexStatus.VideoIndexed,
             VideoIndexStatus.FullIndexed,
             VideoIndexStatus.Error
