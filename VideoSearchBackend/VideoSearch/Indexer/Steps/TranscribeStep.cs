@@ -1,3 +1,4 @@
+using Pgvector;
 using VideoSearch.Database.Abstract;
 using VideoSearch.Database.Models;
 using VideoSearch.Indexer.Abstract;
@@ -10,6 +11,8 @@ namespace VideoSearch.Indexer.Steps;
 
 public class TranscribeStep(ILogger logger) : BaseIndexStep(logger)
 {
+    private const int MaxKeywords = 4;
+    
     protected override VideoIndexStatus InitialStatus => VideoIndexStatus.VideoIndexed;
     protected override VideoIndexStatus TargetStatus => VideoIndexStatus.FullIndexed;
 
@@ -21,22 +24,43 @@ public class TranscribeStep(ILogger logger) : BaseIndexStep(logger)
         var transcribeRequest = new TranscribeVideoRequest(record.Url);
         var transcribeResult = await videoTranscriberService.Transcribe(transcribeRequest);
 
-        var words = transcribeResult.Result?.ToArray();
+        if (transcribeResult.Error != null)
+        {
+            throw new Exception(transcribeResult.Error);
+        }
+
+        string[] words = transcribeResult.Result?.ToArray() ?? [];
+
+        if (words.Length == 0)
+        {
+            return;
+        }
+        
         var vectorizeRequest = new VectorizeRequest(words);
-        var vectorizeResult = await vectorizer.Vectorize(vectorizeRequest);
+        List<VectorizedWord> vectorizeResult = await vectorizer.Vectorize(vectorizeRequest);
+        vectorizeResult = vectorizeResult.Take(MaxKeywords).ToList();
+
+        if (vectorizeResult.Count == 0)
+        {
+            return;
+        }
 
         record.SttKeywords = vectorizeResult.Select(v => v.Word).ToList();
+        await CreateIndices(record, storage, vectorizeResult);
+    }
 
+    private async Task CreateIndices(VideoMeta record, IStorage storage, List<VectorizedWord> vectorizeResult)
+    {
         await storage.RemoveIndicesFor(record.Id, VideoIndexType.Stt);
 
-        foreach (var vectorizedWord in vectorizeResult)
+        foreach (VectorizedWord vectorizedWord in vectorizeResult)
         {
             await storage.AddIndex(new VideoIndex
             {
                 Id = Guid.NewGuid(),
                 VideoMetaId = record.Id,
                 Word = vectorizedWord.Word,
-                Vector = new Pgvector.Vector(vectorizedWord.Vector),
+                Vector = new Vector(vectorizedWord.Vector),
                 ClusterSize = 1,
                 Type = VideoIndexType.Stt
             });

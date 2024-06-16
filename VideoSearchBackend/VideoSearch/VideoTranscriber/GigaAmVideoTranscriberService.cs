@@ -22,11 +22,11 @@ public class GigaAmVideoTranscriberService(string? baseUrl) : IVideoTranscriberS
         );
 
         var content = new StringContent(json, Encoding.UTF8, "application/json");
-        HttpResponseMessage httpResponse = await httpClient.PostAsync(_baseUrl + "/transcribe", content);
+        HttpResponseMessage httpResponse = await httpClient.PostAsync(_baseUrl + "/transcribe-keywords", content);
 
         if (!httpResponse.IsSuccessStatusCode)
         {
-            return new TranscribeVideoResponse(null, $"Request failed with status code {httpResponse.StatusCode}");
+            throw new Exception($"Request failed with status code {httpResponse.StatusCode}");
         }
 
         string jsonResponse = await httpResponse.Content.ReadAsStringAsync();
@@ -38,7 +38,7 @@ public class GigaAmVideoTranscriberService(string? baseUrl) : IVideoTranscriberS
 
         if (result == null)
         {
-            return new TranscribeVideoResponse(null, "Failed to deserialize response");
+            throw new Exception("Failed to deserialize response");
         }
 
         return new TranscribeVideoResponse(result, null);
