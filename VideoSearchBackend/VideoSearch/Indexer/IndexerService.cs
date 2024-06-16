@@ -20,7 +20,7 @@ public class IndexerService(
         new DescribeStep(logger),
         new TranslateStep(logger),
         new CreateIndexStep(logger),
-        new TranscribeStep(logger)
+        //new TranscribeStep(logger)
     ];
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
