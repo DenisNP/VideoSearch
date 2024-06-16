@@ -5,5 +5,5 @@ namespace VideoSearch.VideoTranscriber.Abstract;
 
 public interface IVideoTranscriberService
 {
-    public Task<TemplateValuesResult> Transcribe(TranscribeVideoRequest request);
+    public Task<TranscribeVideoResponse> Transcribe(TranscribeVideoRequest request);
 }

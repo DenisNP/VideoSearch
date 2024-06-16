@@ -1,3 +1,3 @@
 namespace VideoSearch.VideoTranscriber.Models;
 
-public record TranscribeVideoRequest();
+public record TranscribeVideoRequest(string Url);
