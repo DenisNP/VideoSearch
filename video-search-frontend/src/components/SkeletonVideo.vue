@@ -20,7 +20,7 @@ const handleScroll = () => {
 
 const checkLoad = () => {
   if (vid.value) {
-    const rect = vid.value.getBoundingClientRect();
+    const rect = (vid.value as HTMLElement).getBoundingClientRect();
     if (rect.top < window.document.documentElement.clientHeight) {
       loaded.value = true;
       window.removeEventListener('scroll', handleScroll);
