@@ -30,8 +30,6 @@ const statusNameAndStyle = (status: string) => {
   switch (status) {
     case 'Queued':
       return ['В очереди', '#1677ff'];
-    case 'Processing':
-      return ['Обработка', '#1677ff'];
     case 'VideoIndexed':
       return ['Индекс по видео', '#52c41a'];
     case 'FullIndexed':
@@ -102,6 +100,7 @@ const changeOffset = (direction: number) => {
   <a-page-header title="Видеозаписи" style="margin-top: 50px;">
     <template #extra>
       <div style="margin-right: 20px;">{{offset + ' — ' + (offset - (-count))}}</div>
+      <a-button key="5" @click="loadList">↻</a-button>
       <a-button key="3" @click="changeOffset(-10)">‹‹</a-button>
       <a-button key="2" @click="changeOffset(-1)">‹</a-button>
       <a-button key="1" @click="changeOffset(1)">›</a-button>
