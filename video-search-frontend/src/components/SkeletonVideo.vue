@@ -1,17 +1,44 @@
 <script setup lang="ts">
-import {ref} from "vue";
+import {nextTick, onMounted, onUnmounted, ref} from "vue";
 
 const props = defineProps({url: String});
-const loading = ref(true);
+const loaded = ref(false);
+
+onMounted(() => {
+  window.addEventListener('scroll', handleScroll);
+  nextTick(() => {
+    checkLoad();
+  });
+});
+onUnmounted(() => {
+  window.removeEventListener('scroll', handleScroll);
+});
+
+const handleScroll = () => {
+  checkLoad();
+};
+
+const checkLoad = () => {
+  if (vid.value) {
+    const rect = vid.value.getBoundingClientRect();
+    if (rect.top < window.document.documentElement.clientHeight) {
+      loaded.value = true;
+      window.removeEventListener('scroll', handleScroll);
+    }
+  }
+};
+
+const vid = ref(null);
 </script>
 
 <template>
+  <div ref="vid"/>
   <video
       controls
       :src="props.url"
       width="200px"
       style="min-height: 355.55px;"
-      @loadeddata="loading = false"
+      v-if="loaded"
   />
 </template>
 
