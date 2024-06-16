@@ -1,14 +1,17 @@
 <script setup lang="ts">
 import {onMounted, onUnmounted, ref} from 'vue';
-import {getQueue, addToIndex} from './api';
-import { message } from 'ant-design-vue';
+import {addToIndex, getCounters, getQueue} from './api';
+import {message} from 'ant-design-vue';
 import {getItemDescription} from "@/utils";
 
+const count = 100;
+
 onMounted(() => {
-  reload();
+  reloadCounters();
+  loadList();
   interval.value = setInterval(() => {
     if (props.active) {
-      reload();
+      reloadCounters();
     }
   }, 3000)
 });
@@ -16,10 +19,13 @@ onMounted(() => {
 onUnmounted(() => {
   clearInterval(interval.value);
 });
+
 const props = defineProps({active: {type: Boolean, required: true}});
 const interval = ref(0);
 const list = ref([]);
 const counts = ref({});
+const offset = ref(0);
+
 const statusNameAndStyle = (status: string) => {
   switch (status) {
     case 'Queued':
@@ -37,11 +43,13 @@ const statusNameAndStyle = (status: string) => {
   return status;
 };
 
-const reload = async () => {
-  const result = await getQueue(100);
-  list.value = result.videos;
-  counts.value = result.totalByStatus;
+const reloadCounters = async () => {
+  counts.value = await getCounters();
 };
+
+const loadList = async () => {
+  list.value = await getQueue(count, offset.value);
+}
 
 const urlToAdd = ref('');
 const addUrlToIndex = async () => {
@@ -61,6 +69,15 @@ const addUrlToIndex = async () => {
 const getItemDesc = (item: any) => {
   return getItemDescription(item);
 };
+
+const changeOffset = (direction: number) => {
+  let newOffset = offset.value + direction * count;
+  if (newOffset < 0) newOffset = 0;
+  if (newOffset !== offset.value) {
+    offset.value = newOffset;
+    loadList();
+  }
+}
 </script>
 
 <template>
@@ -82,7 +99,16 @@ const getItemDesc = (item: any) => {
       <a-button type="primary" @click="addUrlToIndex" :disabled="!urlToAdd">Добавить</a-button>
     </a-input-group>
   </a-card>
-<a-list :data-source="list" item-layout="vertical" style="margin-top: 50px">
+  <a-page-header title="Видеозаписи" style="margin-top: 50px;">
+    <template #extra>
+      <div style="margin-right: 20px;">{{offset + ' — ' + (offset - (-count))}}</div>
+      <a-button key="3" @click="changeOffset(-10)">‹‹</a-button>
+      <a-button key="2" @click="changeOffset(-1)">‹</a-button>
+      <a-button key="1" @click="changeOffset(1)">›</a-button>
+      <a-button key="4" @click="changeOffset(10)">››</a-button>
+    </template>
+  </a-page-header>
+<a-list :data-source="list" item-layout="vertical">
   <template #renderItem="{ item }">
     <a-list-item>
       <a-list-item-meta :description="item.url">

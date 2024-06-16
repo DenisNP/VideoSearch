@@ -1,7 +1,12 @@
 const address = 'https://videosearch.justanother.app';
 
-export const getQueue = async (count: number) => {
-    const result = await fetch(`${address}/api/GetQueue?count=${count}`);
+export const getQueue = async (count: number, offset: number) => {
+    const result = await fetch(`${address}/api/GetQueue?count=${count}&offset=${offset}`);
+    return await result.json();
+}
+
+export const getCounters = async () => {
+    const result = await fetch(`${address}/api/GetCounters`);
     return await result.json();
 }
 
