@@ -27,9 +27,9 @@ const statusNameAndStyle = (status: string) => {
     case 'Processing':
       return ['Обработка', '#1677ff'];
     case 'VideoIndexed':
-      return ['Проиндексировано по видео', '#52c41a'];
+      return ['Индекс по видео', '#52c41a'];
     case 'FullIndexed':
-      return ['Проиндексировано полностью', '#52c41a'];
+      return ['Индекс по видео и аудио', '#52c41a'];
     case 'Error':
       return ['Ошибки', '#ff4d4f'];
   }
@@ -91,10 +91,10 @@ const getItemDesc = (item: any) => {
         </template>
       </a-list-item-meta>
       <template #extra>
-        <a-tag color="success" v-if="item.status >= 4">проиндексировано</a-tag>
+        <a-tag color="success" v-if="item.status === 99">видео и аудио</a-tag>
         <a-tag color="processing" v-if="item.status === 1">обработка</a-tag>
         <a-tag color="error" v-if="item.status === -1">ошибка</a-tag>
-        <a-tag color="warning" v-if="item.status >= 2 && item.status < 4">частично</a-tag>
+        <a-tag color="warning" v-if="item.status === 4">только видео</a-tag>
         <a-tag color="default" v-if="item.status === 0">в очереди</a-tag>
       </template>
       <div v-html="getItemDesc(item)"/>
