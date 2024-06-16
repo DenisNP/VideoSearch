@@ -80,18 +80,22 @@ public class PgVectorStorage(VsContext context, ILogger<PgVectorStorage> logger)
     {
         lock (Lock)
         {
-            VideoMeta video = context.VideoMetas
-                .OrderBy(m => m.StatusChangedAt)
-                .FirstOrDefault(m => m.Status != VideoIndexStatus.Error
-                                     && m.Status != VideoIndexStatus.FullIndexed
-                                     && !m.Processing);
-
-            if (video == null)
+            var statusesExclude = new List<VideoIndexStatus>
             {
-                // allow retry errored record
+                VideoIndexStatus.Queued,
+                VideoIndexStatus.Error,
+                VideoIndexStatus.FullIndexed
+            };
+
+            VideoMeta video = null;
+            while (statusesExclude.Count > 0 && video == null)
+            {
                 video = context.VideoMetas
                     .OrderBy(m => m.StatusChangedAt)
-                    .FirstOrDefault(m => m.Status != VideoIndexStatus.FullIndexed && !m.Processing);
+                    .FirstOrDefault(m => !statusesExclude.Contains(m.Status)
+                                         && !m.Processing);
+                
+                statusesExclude.RemoveAt(0);
             }
 
             // nothing to index
