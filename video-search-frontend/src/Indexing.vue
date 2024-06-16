@@ -119,7 +119,7 @@ const changeOffset = (direction: number) => {
         <a-tag color="success" v-if="item.status === 99">видео и аудио</a-tag>
         <a-tag color="processing" v-if="item.status === 1">обработка</a-tag>
         <a-tag color="error" v-if="item.status === -1">ошибка</a-tag>
-        <a-tag color="warning" v-if="item.status === 4">только видео</a-tag>
+        <a-tag color="warning" v-if="item.status > 1 && item.status < 99">частично</a-tag>
         <a-tag color="default" v-if="item.status === 0">в очереди</a-tag>
       </template>
       <div v-html="getItemDesc(item)"/>
