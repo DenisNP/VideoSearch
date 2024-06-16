@@ -8,7 +8,7 @@ public interface IStorage
     
     public Task AddMeta(VideoMeta meta);
     public Task UpdateMeta(VideoMeta meta);
-    public Task<VideoMeta> LockNextUnprocessed();
+    public VideoMeta LockNextUnprocessed();
     public Task ClearProcessing();
     public Task<List<VideoMeta>> GetAllIndexed();
 

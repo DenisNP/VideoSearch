@@ -12,9 +12,15 @@ namespace VideoSearch.Controllers;
 public class ApiController(IStorage storage, SearchService searchService, IHintService hintService) : ControllerBase
 {
     [HttpGet("GetQueue")]
-    public async Task<IndexingResult> GetQueue([FromQuery] int count, [FromQuery] int offset = 0)
+    public async Task<List<VideoMeta>> GetQueue([FromQuery] int count, [FromQuery] int offset = 0)
     {
         List<VideoMeta> videos = await storage.ListIndexingVideos(offset, count);
+        return videos;
+    }
+
+    [HttpGet("GetCounters")]
+    public async Task<Dictionary<string, int>> GetCounters()
+    {
         var statuses = new[]
         {
             VideoIndexStatus.Queued,
@@ -22,12 +28,11 @@ public class ApiController(IStorage storage, SearchService searchService, IHintS
             VideoIndexStatus.FullIndexed,
             VideoIndexStatus.Error
         };
-
-        var result = new IndexingResult(videos, new Dictionary<string, int>());
+        var result = new Dictionary<string, int>();
         foreach (VideoIndexStatus videoIndexStatus in statuses)
         {
             int total = await storage.CountForStatus(videoIndexStatus);
-            result.TotalByStatus.Add(videoIndexStatus.ToString(), total);
+            result.Add(videoIndexStatus.ToString(), total);
         }
 
         return result;

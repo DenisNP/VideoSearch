@@ -76,7 +76,7 @@ public class PgVectorStorage(VsContext context, ILogger<PgVectorStorage> logger)
         await context.SaveChangesAsync();
     }
 
-    public Task<VideoMeta> LockNextUnprocessed()
+    public VideoMeta LockNextUnprocessed()
     {
         lock (Lock)
         {
@@ -94,7 +94,7 @@ public class PgVectorStorage(VsContext context, ILogger<PgVectorStorage> logger)
             video.Processing = true;
             context.SaveChanges();
             context.ChangeTracker.Clear();
-            return Task.FromResult(video);
+            return video;
         }
     }
 

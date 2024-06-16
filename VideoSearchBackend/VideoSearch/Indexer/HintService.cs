@@ -33,9 +33,20 @@ public class HintService(IStorage storage, ILogger<HintService> logger) : IHintS
         List<VideoMeta> allMetas = await storage.GetAllIndexed();
         foreach (VideoMeta videoMeta in allMetas)
         {
-            foreach (string keyword in videoMeta.Keywords)
+            if (videoMeta.Keywords != null)
             {
-                builder.Insert(keyword, true);
+                foreach (string keyword in videoMeta.Keywords)
+                {
+                    builder.Insert(keyword, true);
+                }
+            }
+
+            if (videoMeta.SttKeywords != null)
+            {
+                foreach (string keyword in videoMeta.SttKeywords)
+                {
+                    builder.Insert(keyword, true);
+                }
             }
         }
 

@@ -35,15 +35,13 @@ public class IndexerService(
 
     private async Task ExecuteIndexing(CancellationToken stoppingToken)
     {
-        logger.LogInformation("Background indexing running...");
-
         IEnumerable<Task> tasks = Enumerable.Range(1, Parallel).Select(n => Task.Run(async () =>
         {
             using IServiceScope scope = serviceScopeFactory.CreateScope();
             while (!stoppingToken.IsCancellationRequested)
             {
                 var scopedStorage = scope.ServiceProvider.GetRequiredService<IStorage>();
-                VideoMeta record = await scopedStorage.LockNextUnprocessed();
+                VideoMeta record = scopedStorage.LockNextUnprocessed();
                 await TryIndex(record, scope, n - 1);
                 await Task.Delay(TimeSpan.FromMilliseconds(50), stoppingToken);
             }

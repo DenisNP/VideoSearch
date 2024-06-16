@@ -14,7 +14,7 @@ public class VideoMeta
     public string RawDescription { get; set; }
     [JsonIgnore]
     public string TranslatedDescription { get; set; }
-    [JsonIgnore]
+
     public List<string> SttKeywords { get; set; }
     public List<string> Keywords { get; set; }
     public List<string> Centroids { get; set; }

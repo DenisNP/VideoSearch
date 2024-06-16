@@ -12,7 +12,7 @@ namespace VideoSearch.Indexer.Steps;
 public class TranscribeStep(ILogger logger) : BaseIndexStep(logger)
 {
     private const int MaxKeywords = 4;
-    
+
     protected override VideoIndexStatus InitialStatus => VideoIndexStatus.VideoIndexed;
     protected override VideoIndexStatus TargetStatus => VideoIndexStatus.FullIndexed;
 
@@ -20,6 +20,7 @@ public class TranscribeStep(ILogger logger) : BaseIndexStep(logger)
     {
         var videoTranscriberService = serviceProvider.GetRequiredService<IVideoTranscriberService>();
         var vectorizer = serviceProvider.GetRequiredService<IVectorizerService>();
+        var hintService = serviceProvider.GetRequiredService<IHintService>();
 
         var transcribeRequest = new TranscribeVideoRequest(record.Url);
         var transcribeResult = await videoTranscriberService.Transcribe(transcribeRequest);
@@ -35,7 +36,7 @@ public class TranscribeStep(ILogger logger) : BaseIndexStep(logger)
         {
             return;
         }
-        
+
         var vectorizeRequest = new VectorizeRequest(words);
         List<VectorizedWord> vectorizeResult = await vectorizer.Vectorize(vectorizeRequest);
         vectorizeResult = vectorizeResult.Take(MaxKeywords).ToList();
@@ -47,6 +48,7 @@ public class TranscribeStep(ILogger logger) : BaseIndexStep(logger)
 
         record.SttKeywords = vectorizeResult.Select(v => v.Word).ToList();
         await CreateIndices(record, storage, vectorizeResult);
+        hintService.NotifyIndexUpdated();
     }
 
     private async Task CreateIndices(VideoMeta record, IStorage storage, List<VectorizedWord> vectorizeResult)

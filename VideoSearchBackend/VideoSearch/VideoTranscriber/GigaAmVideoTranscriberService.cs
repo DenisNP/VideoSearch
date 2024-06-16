@@ -31,7 +31,7 @@ public class GigaAmVideoTranscriberService(string? baseUrl) : IVideoTranscriberS
 
         string jsonResponse = await httpResponse.Content.ReadAsStringAsync();
 
-        var result = JsonSerializer.Deserialize<List<string>>(
+        var result = JsonSerializer.Deserialize<TranscribeVideoResponse>(
             jsonResponse,
             new JsonSerializerOptions { PropertyNameCaseInsensitive = true }
         );
@@ -41,6 +41,6 @@ public class GigaAmVideoTranscriberService(string? baseUrl) : IVideoTranscriberS
             throw new Exception("Failed to deserialize response");
         }
 
-        return new TranscribeVideoResponse(result, null);
+        return result;
     }
 }
