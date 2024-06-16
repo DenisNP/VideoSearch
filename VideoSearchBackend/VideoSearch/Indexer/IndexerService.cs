@@ -73,11 +73,11 @@ public class IndexerService(
             {
                 if (!await step.Run(record, scope, nThread))
                 {
-                    _attempts++;
+                    /*_attempts++;
                     if (_attempts >= SequentialErrorsAllowed)
                     {
                         await this.StopAsync(default);
-                    }
+                    }*/
                 }
             }
 
