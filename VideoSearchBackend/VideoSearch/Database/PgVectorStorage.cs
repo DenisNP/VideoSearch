@@ -14,17 +14,6 @@ public class PgVectorStorage(VsContext context, ILogger<PgVectorStorage> logger)
     {
         context.Database.EnsureCreated();
         logger.LogInformation("Database initialized");
-
-        var metas = context.VideoMetas.Where(m => m.Status != VideoIndexStatus.Error).ToList();
-        foreach (VideoMeta videoMeta in metas)
-        {
-            if (videoMeta.TranslatedDescription != null &&
-                Utils.GetLatinCharacterRatio(videoMeta.TranslatedDescription) > 0.1)
-            {
-                videoMeta.Status = VideoIndexStatus.Error;
-            }
-        }
-        context.SaveChanges();
     }
 
     /*private async Task PreloadData()
@@ -96,7 +85,7 @@ public class PgVectorStorage(VsContext context, ILogger<PgVectorStorage> logger)
                 .FirstOrDefault(m => m.Status != VideoIndexStatus.Error
                                      && m.Status != VideoIndexStatus.FullIndexed
                                      && !m.Processing);
-            
+
             if (video == null)
             {
                 // allow retry errored record

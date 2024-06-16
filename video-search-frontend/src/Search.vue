@@ -47,6 +47,11 @@ const insertHint = () => {
 const getItemDesc = (item: any) => {
   return getItemDescription(item);
 };
+
+const getPercent = (dist: number) => {
+  const percent = Math.floor(1.0 - dist);
+  return `Совпадение: ${percent}%`;
+};
 </script>
 
 <template>
@@ -71,7 +76,7 @@ const getItemDesc = (item: any) => {
         <template #extra>
           <skeleton-video :url="item.video.url"/>
         </template>
-        <div>{{ item.avgDist }}</div>
+        <p>{{ getPercent(item.avgDist) }}</p>
         <div v-html="getItemDesc(item.video)"/>
       </a-list-item>
     </template>
