@@ -29,29 +29,29 @@ async def vectors(request: Dict[str, List[str]]):
 
 
 
-class ClosestWordsRequest(BaseModel):
+class SimilarWordsRequest(BaseModel):
     words: List[str]
     similarity_threshold: float = 0.0
 
-@app.post("/find_closest_words")
-async def find_closest_words(request: ClosestWordsRequest):
+@app.post("/find_similar_words")
+async def find_similar_words(request: SimilarWordsRequest):
     threshold = request.similarity_threshold
     results = []
 
     for word in request.words:
-        word_lower = word.lower()  # Convert input word to lowercase
+        word_lower = word.lower()
         if word_lower not in navec:
             results.append({"source": word, "result": [{"error": f'Word "{word}" not found in dictionary.'}]})
             continue
 
-        word_vector = navec[word_lower].reshape(1, -1)  # Reshape for cosine_similarity
+        word_vector = navec[word_lower].reshape(1, -1)
         words = [w for w in navec.vocab.words if w != word_lower]
         vectors = np.array([navec[w] for w in words])
         distances = cosine_similarity(word_vector, vectors).flatten()
 
-        closest_words_and_distances = [{"word": words[i], "sim": float(distances[i])} for i in range(len(distances)) if distances[i] >= threshold]
-        closest_words_and_distances.sort(key=lambda x: x["sim"], reverse=True)
+        similar_words_and_distances = [{"word": words[i], "sim": float(distances[i])} for i in range(len(distances)) if distances[i] >= threshold]
+        similar_words_and_distances.sort(key=lambda x: x["sim"], reverse=True)
 
-        results.append({"source": word, "result": closest_words_and_distances})
+        results.append({"source": word, "result": similar_words_and_distances})
 
     return results

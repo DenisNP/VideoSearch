@@ -40,4 +40,31 @@ public class NavecVectorizerService(string? baseUrl) : IVectorizerService
         }
         return result;
     }
+
+    public async Task<List<SimilarWordsResult>> FindSimilarWords(SimilarWordsRequest request)
+    {
+        using var httpClient = new HttpClient();
+        httpClient.Timeout = TimeSpan.FromMinutes(5);
+
+        var json = JsonSerializer.Serialize(
+            request,
+            new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase }
+        );
+
+        var content = new StringContent(json, Encoding.UTF8, "application/json");
+        HttpResponseMessage httpResponse = await httpClient.PostAsync(_baseUrl + "/find_similar_words", content);
+
+        if (!httpResponse.IsSuccessStatusCode)
+        {
+            throw new Exception($"Request failed with status code {httpResponse.StatusCode}");
+        }
+
+        string jsonResponse = await httpResponse.Content.ReadAsStringAsync();
+        List<SimilarWordsResult> result = JsonSerializer.Deserialize<List<SimilarWordsResult>>(
+            jsonResponse,
+            new JsonSerializerOptions { PropertyNameCaseInsensitive = true }
+        ) ?? throw new Exception("Failed to deserialize response");
+        
+        return result;
+    }
 }
