@@ -21,7 +21,7 @@ public class SearchService(IVectorizerService vectorizerService, IStorage storag
         Dictionary<Guid, SearchResult> distances = new();
         foreach (var (_, vec) in vectors)
         {
-            List<(VideoMeta video, double distance)> searchResult = await storage.Search(vec, 0.75f);
+            List<(VideoMeta video, double distance)> searchResult = await storage.Search(vec, 0.75f, 50000);
             foreach ((VideoMeta video, double dist) in searchResult)
             {
                 if (!distances.ContainsKey(video.Id))
@@ -45,6 +45,7 @@ public class SearchService(IVectorizerService vectorizerService, IStorage storag
         double expectedDist = Math.Min(0.65 + (vectors.Count - 1) * 0.1, 0.9);
         List<SearchResult> found = distances.Values
             .OrderBy(v => v.AvgDist)
+            .Take(500)
             .Where(v => v.AvgDist <= expectedDist)
             .ToList();
 
