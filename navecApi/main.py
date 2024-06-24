@@ -41,7 +41,7 @@ async def find_similar_words(request: SimilarWordsRequest):
     for word in request.words:
         word_lower = word.lower()
         if word_lower not in navec:
-            results.append({"source": word, "result": [{"error": f'Word "{word}" not found in dictionary.'}]})
+            # results.append({"source": word, "result": [{"error": f'Word "{word}" not found in dictionary.'}]})
             continue
 
         word_vector = navec[word_lower].reshape(1, -1)
