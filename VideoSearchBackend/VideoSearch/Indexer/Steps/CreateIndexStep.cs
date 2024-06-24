@@ -1,8 +1,6 @@
 ﻿using VideoSearch.Database.Abstract;
 using VideoSearch.Database.Models;
 using VideoSearch.Indexer.Abstract;
-using VideoSearch.Vectorizer.Abstract;
-using VideoSearch.Vectorizer.Models;
 
 namespace VideoSearch.Indexer.Steps;
 
@@ -11,8 +9,8 @@ public class CreateIndexStep(ILogger logger) : BaseIndexStep(logger)
     protected override VideoIndexStatus InitialStatus => VideoIndexStatus.Translated;
     protected override VideoIndexStatus TargetStatus => VideoIndexStatus.VideoIndexed;
 
-    private const int NgramSize = 3;
-    private const double AvgDocLenNgrams = 90.0;
+    public const int NgramSize = 3;
+    public const double AvgDocLenNgrams = 90.0;
     private const double SimilarityThreshold = 0.6;
 
     protected override async Task InternalRun(VideoMeta record, IServiceProvider serviceProvider, IStorage storage, int nThread)
@@ -29,30 +27,21 @@ public class CreateIndexStep(ILogger logger) : BaseIndexStep(logger)
             .ToList();
 
         // vectorize
-        var vectorizer = serviceProvider.GetRequiredService<IVectorizerService>();
-        var similarReq = new SimilarWordsRequest(tokens.ToArray(), SimilarityThreshold);
-        List<SimilarWordsResult> vectors = new List<SimilarWordsResult>();
-
-        /*TODO try
+        var vectors = new List<(string word, double sim)>();
+        foreach (var token in tokens)
         {
-            vectors = await vectorizer.FindSimilarWords(similarReq);
+            var closest = await storage.GetClosestWords(token, SimilarityThreshold);
+            vectors.AddRange(closest);
         }
-        catch
-        {
-            // ignored
-        }*/
 
         Dictionary<string, double> lowerCoefficients = new();
-        foreach (var (_, similarWords) in vectors)
+        foreach (var (word, sim) in vectors)
         {
-            foreach (var (word, sim) in similarWords)
+            if (!lowerCoefficients.ContainsKey(word) || sim > lowerCoefficients[word])
             {
-                if (!lowerCoefficients.ContainsKey(word) || sim > lowerCoefficients[word])
-                {
-                    lowerCoefficients[word] = sim;
-                }
-                tokens.Add(word);
+                lowerCoefficients[word] = sim;
             }
+            tokens.Add(word);
         }
 
         tokens = tokens.Distinct().ToList();
@@ -68,16 +57,16 @@ public class CreateIndexStep(ILogger logger) : BaseIndexStep(logger)
     public static async Task CreateIndexFor(IStorage storage, VideoMeta record, IList<string> tokens, int totalDocs, Dictionary<string, double> lowerCoefficients)
     {
         Dictionary<string, double> ngrams = Utils.GetNgrams(tokens, NgramSize, lowerCoefficients);
-        double totalNgrams = ngrams.Values.Sum();
+        double totalNgramsInDoc = await storage.GetTotalNgramsInDoc(record.Id) + ngrams.Values.Sum();
 
         foreach (var (ngram, ngCount) in ngrams)
         {
-            await UpdateNgram(storage, ngram, ngCount, totalDocs);
-            await AddNgramDocument(storage, record, ngram, ngCount, totalNgrams);
+            NgramModel ngModel = await UpdateNgram(storage, ngram, ngCount, totalDocs);
+            await AddNgramDocument(storage, record, ngModel, ngram, ngCount, totalNgramsInDoc);
         }
     }
 
-    private static async Task UpdateNgram(IStorage storage, string ngram, double ngCount, int totalDocs)
+    private static async Task<NgramModel> UpdateNgram(IStorage storage, string ngram, double ngCount, int totalDocs)
     {
         NgramModel ng = await storage.GetOrCreateNgram(ngram);
         ng.TotalDocs++;
@@ -87,9 +76,10 @@ public class CreateIndexStep(ILogger logger) : BaseIndexStep(logger)
         ng.IdfBm = Utils.IdfBm(totalDocs, ng.TotalDocs);
 
         await storage.UpdateNgram(ng);
+        return ng;
     }
 
-    private static async Task AddNgramDocument(IStorage storage, VideoMeta document, string ngram, double ngCount, double ngramsInDoc)
+    private static async Task AddNgramDocument(IStorage storage, VideoMeta document, NgramModel ngramModel, string ngram, double ngCount, double ngramsInDoc)
     {
         var ngDoc = await storage.GetNgramDocument(ngram, document.Id);
         if (ngDoc == null)
@@ -99,19 +89,21 @@ public class CreateIndexStep(ILogger logger) : BaseIndexStep(logger)
                 Ngram = ngram,
                 DocumentId = document.Id,
                 CountInDoc = ngCount,
-                TotalNgramsInDoc = ngramsInDoc,
                 Tf = ((double) ngCount / ngramsInDoc),
-                TfBm = Utils.TfBm(ngCount, ngramsInDoc, AvgDocLenNgrams)
+                TfBm = Utils.TfBm(ngCount, ngramsInDoc, AvgDocLenNgrams),
             };
+            ngDoc.Score = ngDoc.Tf * ngramModel.Idf;
+            ngDoc.ScoreBm = ngDoc.TfBm * ngramModel.IdfBm;
 
             await storage.AddNgramDocument(ngDoc);
         }
         else
         {
             ngDoc.CountInDoc += ngCount;
-            ngDoc.TotalNgramsInDoc += ngramsInDoc;
-            ngDoc.Tf = (double)ngDoc.CountInDoc / ngDoc.TotalNgramsInDoc;
-            ngDoc.TfBm = Utils.TfBm(ngDoc.CountInDoc, ngDoc.TotalNgramsInDoc, AvgDocLenNgrams);
+            ngDoc.Tf = (double)ngDoc.CountInDoc / ngramsInDoc;
+            ngDoc.TfBm = Utils.TfBm(ngDoc.CountInDoc, ngramsInDoc, AvgDocLenNgrams);
+            ngDoc.Score = ngDoc.Tf * ngramModel.Idf;
+            ngDoc.ScoreBm = ngDoc.TfBm * ngramModel.IdfBm;
 
             await storage.UpdateNgramDocument(ngDoc);
         }

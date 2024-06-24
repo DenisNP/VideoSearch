@@ -6,9 +6,9 @@ namespace VideoSearch.Database;
 public class VsContext : DbContext
 {
     public DbSet<VideoMeta> VideoMetas { get; set; }
-    public DbSet<VideoIndex> VideoIndices { get; set; }
     public DbSet<NgramModel> Ngrams { get; set; }
     public DbSet<NgramDocument> NgramDocuments { get; set; }
+    public DbSet<WordVector> Navec { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -37,22 +37,6 @@ public class VsContext : DbContext
         modelBuilder.Entity<VideoMeta>()
             .Property(m => m.SttKeywords).IsRequired(false);
 
-        modelBuilder.Entity<VideoIndex>()
-            .HasKey(i => i.Id);
-
-        modelBuilder.Entity<VideoIndex>()
-            .HasIndex(i => i.Type);
-        
-        modelBuilder.Entity<VideoIndex>()
-            .HasIndex(i => i.VideoMetaId);
-
-        modelBuilder.Entity<VideoIndex>()
-            .HasIndex(i => i.Vector)
-            .HasMethod("hnsw")
-            .HasOperators("vector_cosine_ops")
-            .HasStorageParameter("m", 16)
-            .HasStorageParameter("ef_construction", 64);
-
         modelBuilder.Entity<NgramModel>()
             .HasKey(n => n.Ngram);
 
@@ -63,6 +47,20 @@ public class VsContext : DbContext
             .HasIndex(d => d.Ngram);
         modelBuilder.Entity<NgramDocument>()
             .HasIndex(d => d.DocumentId);
+        modelBuilder.Entity<NgramDocument>()
+            .HasIndex(d => d.Score);
+        modelBuilder.Entity<NgramDocument>()
+            .HasIndex(d => d.ScoreBm);
+
+        modelBuilder.Entity<WordVector>()
+            .HasKey(i => i.Word);
+
+        modelBuilder.Entity<WordVector>()
+            .HasIndex(i => i.Vector)
+            .HasMethod("hnsw")
+            .HasOperators("vector_cosine_ops")
+            .HasStorageParameter("m", 16)
+            .HasStorageParameter("ef_construction", 64);
     }
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)

@@ -1,13 +1,12 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using Pgvector;
 using Pgvector.EntityFrameworkCore;
 using VideoSearch.Database.Abstract;
 using VideoSearch.Database.Models;
-using VideoSearch.Vectorizer.Abstract;
+using VideoSearch.Indexer.Models;
 
 namespace VideoSearch.Database;
 
-public class PgVectorStorage(VsContext context, ILogger<PgVectorStorage> logger, IVectorizerService vectorizerService) : IStorage
+public class PgVectorStorage(VsContext context, ILogger<PgVectorStorage> logger) : IStorage
 {
     private static readonly object Lock = new();
 
@@ -87,43 +86,17 @@ public class PgVectorStorage(VsContext context, ILogger<PgVectorStorage> logger,
         return await context.VideoMetas.CountAsync();
     }
 
-    public async Task AddIndex(VideoIndex index)
+    public async Task<List<VideoMeta>> GetByIds(List<Guid> ids)
     {
-        await context.VideoIndices.AddAsync(index);
-        await context.SaveChangesAsync();
+        return await context.VideoMetas.Where(m => ids.Contains(m.Id)).ToListAsync();
     }
 
-    public async Task<List<(VideoMeta video, double distance)>> Search(float[] vector, float tolerance, int indexSearchCount = 100)
+    public async Task<List<NgramDocument>> Search(string[] ngrams, int count)
     {
-        var vec = new Vector(vector);
-        var indicesFound = await context.VideoIndices.OrderBy(i => i.Vector.CosineDistance(vec))
-            .Select(i => new { Index = i, Distance = i.Vector.CosineDistance(vec) })
-            //.Where(i => i.Distance <= tolerance)
-            .Take(indexSearchCount)
-            .ToListAsync();
-
-        var bestDistances = new Dictionary<Guid, double>();
-        foreach (var idx in indicesFound.Where(i => i.Distance <= tolerance))
-        {
-            Guid metaId = idx.Index.VideoMetaId;
-            double newDist = idx.Distance;
-
-            if (!bestDistances.TryGetValue(metaId, out double oldDist))
-            {
-                bestDistances.Add(metaId, newDist);
-            }
-            else if (oldDist > newDist)
-            {
-                bestDistances[metaId] = newDist;
-            }
-        }
-
-        List<Guid> ids = bestDistances.Keys.ToList();
-        List<VideoMeta> videos = await context.VideoMetas
-            .Where(m => ids.Contains(m.Id))
-            .ToListAsync();
-
-        return videos.Select(v => (video: v, distance: bestDistances[v.Id])).OrderBy(x => x.distance).ToList();
+        return await context.NgramDocuments
+            .Where(nd => ngrams.Contains(nd.Ngram))
+            .OrderByDescending(nd => nd.Score)
+            .Take(count).ToListAsync();
     }
 
     public async Task<List<VideoMeta>> ListIndexingVideos(int offset, int count)
@@ -140,11 +113,24 @@ public class PgVectorStorage(VsContext context, ILogger<PgVectorStorage> logger,
         return await context.VideoMetas.CountAsync(v => v.Status == status);
     }
 
-    public async Task RemoveIndicesFor(Guid videoMetaId, VideoIndexType indexType)
+    public async Task<List<(string word, double sim)>> GetClosestWords(string word, double similarity)
     {
-        await context.VideoIndices
-            .Where(i => i.VideoMetaId == videoMetaId && i.Type == indexType)
-            .ExecuteDeleteAsync();
+        WordVector wordFound = await context.Navec.FirstOrDefaultAsync(w => w.Word == word);
+        if (wordFound == null)
+        {
+            return new List<(string word, double sim)>();
+        }
+
+        var vectorsFound = await context.Navec.OrderBy(i => i.Vector.CosineDistance(wordFound.Vector))
+            .Select(w => new { Word = w, Distance = w.Vector.CosineDistance(wordFound.Vector) })
+            // .Where(i => i.Distance <= distance)
+            .Take(50)
+            .ToListAsync();
+
+        return vectorsFound
+            .Select(v => (word: v.Word.Word, sim: 1.0 - v.Distance))
+            .Where(v => v.sim >= similarity)
+            .ToList();
     }
 
     public async Task<NgramModel> GetOrCreateNgram(string ngram)
@@ -188,5 +174,13 @@ public class PgVectorStorage(VsContext context, ILogger<PgVectorStorage> logger,
     {
         context.NgramDocuments.Update(document);
         await context.SaveChangesAsync();
+    }
+
+    public async Task<double> GetTotalNgramsInDoc(Guid documentId)
+    {
+        return await context.NgramDocuments
+            .Where(d => d.DocumentId == documentId)
+            .Select(d => d.CountInDoc)
+            .SumAsync();
     }
 }
