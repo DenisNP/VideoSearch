@@ -37,12 +37,13 @@ async def vectors(request: Dict[str, List[str]]):
 
 
 class SimilarWordsRequest(BaseModel):
-    words: list[str]
-    similarity_threshold: float
+    words: List[str]
+    similarityThreshold: float = 0.0
+
 
 @app.post("/find_similar_words")
 async def find_similar_words(request: SimilarWordsRequest):
-    threshold = request.similarity_threshold
+    threshold = request.similarityThreshold
     results = []
 
     for word in request.words:

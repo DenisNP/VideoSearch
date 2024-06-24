@@ -1,10 +1,6 @@
-﻿using Pgvector;
-using VideoSearch.Database.Abstract;
+﻿using VideoSearch.Database.Abstract;
 using VideoSearch.Database.Models;
-using VideoSearch.External.KMeans;
 using VideoSearch.Indexer.Abstract;
-using VideoSearch.Vectorizer.Abstract;
-using VideoSearch.Vectorizer.Models;
 
 namespace VideoSearch.Indexer.Steps;
 
@@ -13,123 +9,103 @@ public class CreateIndexStep(ILogger logger) : BaseIndexStep(logger)
     protected override VideoIndexStatus InitialStatus => VideoIndexStatus.Translated;
     protected override VideoIndexStatus TargetStatus => VideoIndexStatus.VideoIndexed;
 
-    private const int MinimumPoints = 4;
+    public const int NgramSize = 3;
+    public const double AvgDocLenNgrams = 90.0;
+    private const double SimilarityThreshold = 0.6;
 
     protected override async Task InternalRun(VideoMeta record, IServiceProvider serviceProvider, IStorage storage, int nThread)
     {
-        string[] tokens = record.TranslatedDescription
+        // prepare
+        int totalDocs = await storage.CountAll();
+        
+        // extract tokens
+        List<string> tokens = record.TranslatedDescription
             .Tokenize()
             .Select(x => x.ToLower())
             .Distinct()
             .OrderBy(x => x)
-            .ToArray();
-
-        var vectorizer = serviceProvider.GetRequiredService<IVectorizerService>();
-        var hintService = serviceProvider.GetRequiredService<IHintService>();
-
-        var request = new VectorizeRequest(tokens);
-        List<VectorizedWord> vectors = await vectorizer.Vectorize(request);
-
-        record.Keywords = vectors.Select(v => v.Word).ToList();
-
-        List<DataVec> points = vectors
-            .Select(v => new DataVec(v.Vector.Select(x => (double)x).ToArray()){ Word = v.Word })
             .ToList();
 
-        // run indexing
-        Cluster[] clusters = Clusterize(points);
-        await CreateIndices(clusters, record, storage);
+        // vectorize
+        var vectors = new List<(string word, double sim)>();
+        foreach (var token in tokens)
+        {
+            var closest = await storage.GetClosestWords(token, SimilarityThreshold);
+            vectors.AddRange(closest);
+        }
+
+        Dictionary<string, double> lowerCoefficients = new();
+        foreach (var (word, sim) in vectors)
+        {
+            if (!lowerCoefficients.ContainsKey(word) || sim > lowerCoefficients[word])
+            {
+                lowerCoefficients[word] = sim;
+            }
+            tokens.Add(word);
+        }
+
+        tokens = tokens.Distinct().ToList();
+
+        // create indices
+        await CreateIndexFor(storage, record, tokens, totalDocs, lowerCoefficients);
+        
+        // rebuild hints
+        var hintService = serviceProvider.GetRequiredService<IHintService>();
         hintService.NotifyIndexUpdated();
     }
 
-    private async Task CreateIndices(Cluster[] clusters, VideoMeta record, IStorage storage)
+    public static async Task CreateIndexFor(IStorage storage, VideoMeta record, IList<string> tokens, int totalDocs, Dictionary<string, double> lowerCoefficients)
     {
-        record.Centroids = new();
-        await storage.RemoveIndicesFor(record.Id, VideoIndexType.Video);
+        Dictionary<string, double> ngrams = Utils.GetNgrams(tokens, NgramSize, lowerCoefficients);
+        double totalNgramsInDoc = await storage.GetTotalNgramsInDoc(record.Id) + ngrams.Values.Sum();
 
-        foreach (Cluster cluster in clusters)
+        foreach (var (ngram, ngCount) in ngrams)
         {
-            DataVec center = cluster.MostCenterPoint();
-            record.Centroids.Add(center.Word);
-
-            // add centroid itself
-            await storage.AddIndex(new VideoIndex
-            {
-                Id = Guid.NewGuid(),
-                VideoMetaId = record.Id,
-                Word = center.Word,
-                Vector = new Vector(cluster.Centroid.Components.Select(x => (float)x).ToArray()),
-                ClusterSize = cluster.Points.Count,
-                Type = VideoIndexType.Video
-            });
-            
-            // add closest to center word
-            await storage.AddIndex(new VideoIndex
-            {
-                Id = Guid.NewGuid(),
-                VideoMetaId = record.Id,
-                Word = center.Word,
-                Vector = new Vector(center.Components.Select(c => (float)c).ToArray()),
-                ClusterSize = cluster.Points.Count,
-                Type = VideoIndexType.Video
-            });
+            NgramModel ngModel = await UpdateNgram(storage, ngram, ngCount, totalDocs);
+            await AddNgramDocument(storage, record, ngModel, ngram, ngCount, totalNgramsInDoc);
         }
     }
 
-    private Cluster[] Clusterize(List<DataVec> points)
+    private static async Task<NgramModel> UpdateNgram(IStorage storage, string ngram, double ngCount, int totalDocs)
     {
-        double lastDist = Double.MaxValue;
-        Cluster[] lastClusters = null;
-        double bestDist = Double.MaxValue;
-        Cluster[] bestClusters = null;
-        var bestWasSet = false;
+        NgramModel ng = await storage.GetOrCreateNgram(ngram);
+        ng.TotalDocs++;
+        ng.TotalNgrams += ngCount;
 
-        int startCount = points.Count / 2;
-        int endCount = startCount >= 2 ? 2 : startCount;
+        ng.Idf = Math.Log((double) totalDocs / ng.TotalDocs);
+        ng.IdfBm = Utils.IdfBm(totalDocs, ng.TotalDocs);
 
-        for (int num = startCount; num >= endCount; num--)
-        {
-            (Cluster[] clusters, double avgDist) = FindClusterVariant(points, num);
-
-            bestClusters ??= clusters;
-            
-            if (avgDist < bestDist)
-            {
-                double avgPoints = clusters.AveragePointsCount();
-                if (avgPoints >= MinimumPoints)
-                {
-                    bestDist = avgDist;
-                    bestClusters = clusters;
-                    bestWasSet = true;
-                }
-            }
-
-            if (lastClusters != null && lastDist > avgDist && bestWasSet)
-            {
-                bestDist = avgDist;
-                bestClusters = clusters;
-                break;
-            }
-
-            lastDist = avgDist;
-            lastClusters = clusters;
-        }
-
-        /*Console.WriteLine("Total: {0}, clusters: {1}, points: {2}, avgDist: {3}",
-            points.Count,
-            bestClusters.Length,
-            bestClusters.AveragePointsCount(),
-            bestDist
-        );
-        Console.WriteLine();*/
-        return bestClusters;
+        await storage.UpdateNgram(ng);
+        return ng;
     }
 
-    private (Cluster[] clusters, double avgDist) FindClusterVariant(List<DataVec> points, int numClusters)
+    private static async Task AddNgramDocument(IStorage storage, VideoMeta document, NgramModel ngramModel, string ngram, double ngCount, double ngramsInDoc)
     {
-        var cl = new KMeansClustering(points.ToArray(), Math.Min(numClusters, points.Count));
-        Cluster[] clusters =  cl.Compute();
+        var ngDoc = await storage.GetNgramDocument(ngram, document.Id);
+        if (ngDoc == null)
+        {
+            ngDoc = new NgramDocument
+            {
+                Ngram = ngram,
+                DocumentId = document.Id,
+                CountInDoc = ngCount,
+                Tf = ((double) ngCount / ngramsInDoc),
+                TfBm = Utils.TfBm(ngCount, ngramsInDoc, AvgDocLenNgrams),
+            };
+            ngDoc.Score = ngDoc.Tf * ngramModel.Idf;
+            ngDoc.ScoreBm = ngDoc.TfBm * ngramModel.IdfBm;
 
-        return (clusters, clusters.Select(c => c.AvgDistanceToCenter()).Average());
+            await storage.AddNgramDocument(ngDoc);
+        }
+        else
+        {
+            ngDoc.CountInDoc += ngCount;
+            ngDoc.Tf = (double)ngDoc.CountInDoc / ngramsInDoc;
+            ngDoc.TfBm = Utils.TfBm(ngDoc.CountInDoc, ngramsInDoc, AvgDocLenNgrams);
+            ngDoc.Score = ngDoc.Tf * ngramModel.Idf;
+            ngDoc.ScoreBm = ngDoc.TfBm * ngramModel.IdfBm;
+
+            await storage.UpdateNgramDocument(ngDoc);
+        }
     }
 }

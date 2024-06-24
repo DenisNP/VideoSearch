@@ -1,68 +1,20 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using Pgvector;
 using Pgvector.EntityFrameworkCore;
 using VideoSearch.Database.Abstract;
 using VideoSearch.Database.Models;
+using VideoSearch.Indexer.Models;
 
 namespace VideoSearch.Database;
 
 public class PgVectorStorage(VsContext context, ILogger<PgVectorStorage> logger) : IStorage
 {
     private static readonly object Lock = new();
-    
+
     public void Init()
     {
         context.Database.EnsureCreated();
         logger.LogInformation("Database initialized");
     }
-
-    /*private async Task PreloadData()
-    {
-        string[] lines = await File.ReadAllLinesAsync("yappy_hackaton_2024_400k.csv");
-        int count = 0;
-        foreach (string line in lines)
-        {
-            var arr = line.Split(",");
-            if (arr.Length > 0 && arr[0].StartsWith("https://") && arr[0].EndsWith(".mp4"))
-            {
-                count++;
-                var meta = await context.VideoMetas.FirstOrDefaultAsync(m => m.Url == arr[0]);
-                if (meta == null)
-                {
-                    await context.VideoMetas.AddAsync(new VideoMeta
-                    {
-                        Id = Guid.NewGuid(),
-                        CreatedAt = count <= 500 ? DateTime.UtcNow - TimeSpan.FromDays(5) : DateTime.UtcNow,
-                        StatusChangedAt = DateTime.UtcNow,
-                        Status = VideoIndexStatus.Queued,
-                        Url = arr[0],
-                        RawDescription = null,
-                        TranslatedDescription = null,
-                        Stt = null,
-                        Keywords = null,
-                        Centroids = null
-                    });
-                } 
-                else if (meta.Status == VideoIndexStatus.Unknown)
-                {
-                    meta.Status = VideoIndexStatus.Queued;
-                    await context.SaveChangesAsync();
-                }
-
-                if (count % 1000 == 0)
-                {
-                    Console.WriteLine(count);
-                }
-
-                if (count >= 20500)
-                {
-                    break;
-                }
-            }
-        }
-
-        await context.VideoMetas.Where(m => m.Status == VideoIndexStatus.Unknown).ExecuteDeleteAsync();
-    }*/
 
     public async Task AddMeta(VideoMeta meta)
     {
@@ -125,55 +77,26 @@ public class PgVectorStorage(VsContext context, ILogger<PgVectorStorage> logger)
     {
         return await context.VideoMetas
             .Where(m => m.Status == VideoIndexStatus.VideoIndexed || m.Status == VideoIndexStatus.FullIndexed)
+            .AsNoTracking()
             .ToListAsync();
     }
 
-    public async Task AddIndex(VideoIndex index)
+    public async Task<int> CountAll()
     {
-        await context.VideoIndices.AddAsync(index);
-        await context.SaveChangesAsync();
+        return await context.VideoMetas.CountAsync();
     }
 
-    public async Task<List<(VideoMeta video, double distance)>> Search(float[] vector, float tolerance, int indexSearchCount = 100)
+    public async Task<List<VideoMeta>> GetByIds(List<Guid> ids)
     {
-        var vec = new Vector(vector);
-        var indicesFound = await context.VideoIndices.OrderBy(i => i.Vector.CosineDistance(vec))
-            .Select(i => new { Index = i, Distance = i.Vector.CosineDistance(vec) })
-            .Take(indexSearchCount)
-            .ToListAsync();
+        return await context.VideoMetas.Where(m => ids.Contains(m.Id)).ToListAsync();
+    }
 
-        var bestDistances = new Dictionary<Guid, double>();
-        foreach (var idx in indicesFound.Where(i => i.Distance <= tolerance))
-        {
-            Guid metaId = idx.Index.VideoMetaId;
-            double newDist = idx.Distance;
-
-            if (!bestDistances.TryGetValue(metaId, out double oldDist))
-            {
-                bestDistances.Add(metaId, newDist);
-            }
-            else if (oldDist > newDist)
-            {
-                bestDistances[metaId] = newDist;
-            }
-        }
-
-        List<Guid> ids = bestDistances.Keys.ToList();
-        List<VideoMeta> videos = await context.VideoMetas
-            .Where(m => ids.Contains(m.Id))
-            .ToListAsync();
-        
-#if DEBUG
-        foreach (var v in videos.OrderBy(v => bestDistances[v.Id]).Take(10))
-        {
-            Console.WriteLine(bestDistances[v.Id]);
-            Console.WriteLine(v.Id);
-            Console.WriteLine(string.Join(", ", v.Keywords.Take(15)));
-            Console.WriteLine();
-        }
-#endif
-
-        return videos.Select(v => (video: v, distance: bestDistances[v.Id])).OrderBy(x => x.distance).ToList();
+    public async Task<List<NgramDocument>> Search(string[] ngrams, int count, bool bm = false)
+    {
+        return await context.NgramDocuments
+            .Where(nd => ngrams.Contains(nd.Ngram))
+            .OrderByDescending(nd => bm ? nd.ScoreBm : nd.Score)
+            .Take(count).ToListAsync();
     }
 
     public async Task<List<VideoMeta>> ListIndexingVideos(int offset, int count)
@@ -190,10 +113,74 @@ public class PgVectorStorage(VsContext context, ILogger<PgVectorStorage> logger)
         return await context.VideoMetas.CountAsync(v => v.Status == status);
     }
 
-    public async Task RemoveIndicesFor(Guid videoMetaId, VideoIndexType indexType)
+    public async Task<List<(string word, double sim)>> GetClosestWords(string word, double similarity, int limit = 50)
     {
-        await context.VideoIndices
-            .Where(i => i.VideoMetaId == videoMetaId && i.Type == indexType)
-            .ExecuteDeleteAsync();
+        WordVector wordFound = await context.Navec.FirstOrDefaultAsync(w => w.Word == word);
+        if (wordFound == null)
+        {
+            return new List<(string word, double sim)>();
+        }
+
+        var vectorsFound = await context.Navec.OrderBy(i => i.Vector.CosineDistance(wordFound.Vector))
+            .Select(w => new { Word = w, Distance = w.Vector.CosineDistance(wordFound.Vector) })
+            // .Where(i => i.Distance <= distance)
+            .Take(limit)
+            .ToListAsync();
+
+        return vectorsFound
+            .Select(v => (word: v.Word.Word, sim: 1.0 - v.Distance))
+            .Where(v => v.sim >= similarity)
+            .ToList();
+    }
+
+    public async Task<NgramModel> GetOrCreateNgram(string ngram)
+    {
+        NgramModel ng = await context.Ngrams.FirstOrDefaultAsync(n => n.Ngram == ngram);
+        if (ng == null)
+        {
+            ng = new NgramModel
+            {
+                Ngram = ngram,
+                Idf = 0.0,
+                IdfBm = 0.0,
+                TotalDocs = 0,
+                TotalNgrams = 0
+            };
+            await context.Ngrams.AddAsync(ng);
+            await context.SaveChangesAsync();
+        }
+
+        return await context.Ngrams.FirstAsync(n => n.Ngram == ngram);
+    }
+
+    public async Task UpdateNgram(NgramModel ngramModel)
+    {
+        context.Ngrams.Update(ngramModel);
+        await context.SaveChangesAsync();
+    }
+
+    public async Task<NgramDocument> GetNgramDocument(string ngram, Guid documentId)
+    {
+        return await context.NgramDocuments.FirstOrDefaultAsync(d => d.DocumentId == documentId && d.Ngram == ngram);
+    }
+
+    public async Task AddNgramDocument(NgramDocument document)
+    {
+        await context.NgramDocuments.AddAsync(document);
+        await context.SaveChangesAsync();
+    }
+
+    public async Task UpdateNgramDocument(NgramDocument document)
+    {
+        context.NgramDocuments.Update(document);
+        await context.SaveChangesAsync();
+    }
+
+    public async Task<double> GetTotalNgramsInDoc(Guid documentId)
+    {
+        return await context.NgramDocuments
+            .Where(d => d.DocumentId == documentId)
+            .Select(d => d.CountInDoc)
+            .SumAsync();
     }
 }

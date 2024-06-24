@@ -1,53 +1,30 @@
 using VideoSearch.Database.Abstract;
 using VideoSearch.Database.Models;
 using VideoSearch.Indexer.Models;
-using VideoSearch.Vectorizer.Abstract;
-using VideoSearch.Vectorizer.Models;
+using VideoSearch.Indexer.Steps;
 
 namespace VideoSearch.Indexer;
 
-public class SearchService(IVectorizerService vectorizerService, IStorage storage)
+public class SearchService(IStorage storage)
 {
-    public async Task<List<SearchResult>> Search(string q)
+    public async Task<List<SearchResult>> Search(string q, bool bm = false)
     {
         string[] words = q.Tokenize();
-        List<VectorizedWord> vectors = await vectorizerService.Vectorize(new VectorizeRequest(words));
-        if (vectors.Count == 0)
+        var ngrams = Utils.GetNgrams(words, CreateIndexStep.NgramSize);
+        List<NgramDocument> nDocs =
+            await storage.Search(ngrams.Keys.ToArray(), (int)(300 * CreateIndexStep.AvgDocLenNgrams), bm);
+
+        Dictionary<Guid, double> scores = new();
+        foreach (NgramDocument nDoc in nDocs)
         {
-            return new List<SearchResult>();
+            scores.TryAdd(nDoc.DocumentId, 0.0);
+            scores[nDoc.DocumentId] += bm ? nDoc.ScoreBm : nDoc.Score;
         }
 
-        // collect found and distances
-        Dictionary<Guid, SearchResult> distances = new();
-        foreach (var (_, vec) in vectors)
-        {
-            List<(VideoMeta video, double distance)> searchResult = await storage.Search(vec, 0.75f);
-            foreach ((VideoMeta video, double dist) in searchResult)
-            {
-                if (!distances.ContainsKey(video.Id))
-                {
-                    distances.Add(video.Id, new SearchResult(video, new List<double>()));
-                }
-                distances[video.Id].Distances.Add(dist);
-            }
-        }
+        List<Guid> ids = scores.Select(s => s.Key).ToList();
 
-        // find avg
-        foreach (SearchResult searchResult in distances.Values)
-        {
-            // add penalty for not found words
-            while (searchResult.Distances.Count < vectors.Count)
-            {
-                searchResult.Distances.Add(1.0);
-            }
-        }
-
-        double expectedDist = Math.Min(0.65 + (vectors.Count - 1) * 0.1, 0.9);
-        List<SearchResult> found = distances.Values
-            .OrderBy(v => v.AvgDist)
-            .Where(v => v.AvgDist <= expectedDist)
-            .ToList();
-
-        return found.ToList();
+        var metas = await storage.GetByIds(ids);
+        var result = metas.Select(m => new SearchResult(m, scores[m.Id])).OrderByDescending(r => r.Score).ToList();
+        return result;
     }
 }

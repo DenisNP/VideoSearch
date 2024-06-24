@@ -13,7 +13,7 @@ public class NavecVectorizerService(string? baseUrl) : IVectorizerService
     public async Task<List<VectorizedWord>> Vectorize(VectorizeRequest request, bool keepEmptyVectors = false)
     {
         using var httpClient = new HttpClient();
-        httpClient.Timeout = TimeSpan.FromMinutes(5);
+        httpClient.Timeout = TimeSpan.FromMinutes(1);
 
         var json = JsonSerializer.Serialize(
             request,
@@ -44,7 +44,7 @@ public class NavecVectorizerService(string? baseUrl) : IVectorizerService
     public async Task<List<SimilarWordsResult>> FindSimilarWords(SimilarWordsRequest request)
     {
         using var httpClient = new HttpClient();
-        httpClient.Timeout = TimeSpan.FromMinutes(5);
+        httpClient.Timeout = TimeSpan.FromMinutes(1);
 
         var json = JsonSerializer.Serialize(
             request,

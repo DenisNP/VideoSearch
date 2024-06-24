@@ -1,4 +1,3 @@
-using Microsoft.AspNetCore.Routing.Template;
 using VideoSearch.VideoTranscriber.Models;
 
 namespace VideoSearch.VideoTranscriber.Abstract;

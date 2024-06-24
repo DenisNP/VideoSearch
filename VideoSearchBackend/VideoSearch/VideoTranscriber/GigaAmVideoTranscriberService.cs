@@ -1,6 +1,5 @@
 using System.Text;
 using System.Text.Json;
-using Microsoft.AspNetCore.Routing.Template;
 using VideoSearch.VideoTranscriber.Abstract;
 using VideoSearch.VideoTranscriber.Models;
 

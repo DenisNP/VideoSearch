@@ -38,9 +38,9 @@ public class ApiController(IStorage storage, SearchService searchService, IHintS
     }
 
     [HttpGet("Search")]
-    public Task<List<SearchResult>> Search([FromQuery] string q)
+    public Task<List<SearchResult>> Search([FromQuery] string q, [FromQuery] bool bm = false)
     {
-        return searchService.Search(q);
+        return searchService.Search(q, bm);
     }
 
     [HttpGet("Hints")]
