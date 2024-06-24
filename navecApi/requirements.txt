@@ -1,4 +1,0 @@
-fastapi~=0.111.0
-navec~=0.10.0
-scikit-learn~=1.5.0
-numpy~=2.0.0

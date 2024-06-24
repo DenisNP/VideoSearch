@@ -8,8 +8,8 @@ WebAPI на `Python` для модели [PLLaVa](https://pllava.github.io/), п
 ## GigaAM API
 WebAPI на `Python` для модели [GigaAm](https://github.com/salute-developers/GigaAM), позволяющей проводить транскрибацию (speech-to-text) голоса на русском языке. Должна запускаться на отдельном сервере с GPU.
 
-## Navec API
-WebAPI на `Python` для работы с векторами семантической близости из проекта [Navec](https://github.com/natasha/navec). Запускается в общей сборке на одном сервере с бэкендом и фронтендом.
+## Navec
+Одна из таблиц БД предварительно заполнена векторами из проекта [Navec](https://github.com/natasha/navec) для работы с семантической близостью. 
 
 ## LibreTranslate
 Self-hosted API [LibreTranslate](https://github.com/LibreTranslate/LibreTranslate) для перевода на разные языки. Модели для русского и английского запускаются в общей сборке на одном сервере с бэкендом и фронтендом.

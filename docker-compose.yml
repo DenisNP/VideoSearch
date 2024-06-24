@@ -10,11 +10,7 @@ services:
             LT_LOAD_ONLY: "en,ru"
         volumes:
             - ./_lt_data:/home/libretranslate/.local
-    navec:
-        container_name: navec_api
-        build: ./navecApi
-        #ports:
-        #    - 5124:8000
+
     backend:
         container_name: video_search_back
         build: .
@@ -26,4 +22,5 @@ services:
         environment:
             LIBRE_TRANSLATE_URL: http://libretranslate:5000
             NAVEC_API_URL: http://navec:8000
+            AVG_DOC_LEN_NGRAMS: 150
         env_file: .env
