@@ -3,11 +3,20 @@ from fastapi import FastAPI, HTTPException
 from navec import Navec
 from typing import List, Dict, Union
 from sklearn.metrics.pairwise import cosine_similarity
+from sklearn.neighbors import NearestNeighbors
 from pydantic import BaseModel
 
 
 app = FastAPI()
 navec = Navec.load('navec_hudlit_v1_12B_500K_300d_100q.tar')
+
+# Precompute all vectors and store them in an array
+words = list(navec.vocab.words)
+word_vectors = np.array([navec[word] for word in words])
+    
+# Use NearestNeighbors for efficient similarity search
+nn_model = NearestNeighbors(metric='cosine', algorithm='auto')
+nn_model.fit(word_vectors)
 
 
 @app.post("/vectors")
@@ -27,11 +36,9 @@ async def vectors(request: Dict[str, List[str]]):
     return response
 
 
-
-
 class SimilarWordsRequest(BaseModel):
-    words: List[str]
-    similarity_threshold: float = 0.0
+    words: list[str]
+    similarity_threshold: float
 
 @app.post("/find_similar_words")
 async def find_similar_words(request: SimilarWordsRequest):
@@ -40,16 +47,15 @@ async def find_similar_words(request: SimilarWordsRequest):
 
     for word in request.words:
         word_lower = word.lower()
-        if word_lower not in navec:
+        if word_lower not in navec.vocab.words_set:
             results.append({"source": word, "result": [{"error": f'Word "{word}" not found in dictionary.'}]})
             continue
 
         word_vector = navec[word_lower].reshape(1, -1)
-        words = [w for w in navec.vocab.words if w != word_lower]
-        vectors = np.array([navec[w] for w in words])
-        distances = cosine_similarity(word_vector, vectors).flatten()
 
-        similar_words_and_distances = [{"word": words[i], "sim": float(distances[i])} for i in range(len(distances)) if distances[i] >= threshold]
+        distances, indices = nn_model.kneighbors(word_vector, n_neighbors=len(words))
+        
+        similar_words_and_distances = [{"word": words[idx], "sim": float(1 - distances[0][i])} for i, idx in enumerate(indices[0]) if 1 - distances[0][i] >= threshold and words[idx] != word_lower]
         similar_words_and_distances.sort(key=lambda x: x["sim"], reverse=True)
 
         results.append({"source": word, "result": similar_words_and_distances})
