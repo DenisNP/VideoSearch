@@ -91,11 +91,11 @@ public class PgVectorStorage(VsContext context, ILogger<PgVectorStorage> logger)
         return await context.VideoMetas.Where(m => ids.Contains(m.Id)).ToListAsync();
     }
 
-    public async Task<List<NgramDocument>> Search(string[] ngrams, int count)
+    public async Task<List<NgramDocument>> Search(string[] ngrams, int count, bool bm = false)
     {
         return await context.NgramDocuments
             .Where(nd => ngrams.Contains(nd.Ngram))
-            .OrderByDescending(nd => nd.Score)
+            .OrderByDescending(nd => bm ? nd.ScoreBm : nd.Score)
             .Take(count).ToListAsync();
     }
 
@@ -113,7 +113,7 @@ public class PgVectorStorage(VsContext context, ILogger<PgVectorStorage> logger)
         return await context.VideoMetas.CountAsync(v => v.Status == status);
     }
 
-    public async Task<List<(string word, double sim)>> GetClosestWords(string word, double similarity)
+    public async Task<List<(string word, double sim)>> GetClosestWords(string word, double similarity, int limit = 50)
     {
         WordVector wordFound = await context.Navec.FirstOrDefaultAsync(w => w.Word == word);
         if (wordFound == null)
@@ -124,7 +124,7 @@ public class PgVectorStorage(VsContext context, ILogger<PgVectorStorage> logger)
         var vectorsFound = await context.Navec.OrderBy(i => i.Vector.CosineDistance(wordFound.Vector))
             .Select(w => new { Word = w, Distance = w.Vector.CosineDistance(wordFound.Vector) })
             // .Where(i => i.Distance <= distance)
-            .Take(50)
+            .Take(limit)
             .ToListAsync();
 
         return vectorsFound

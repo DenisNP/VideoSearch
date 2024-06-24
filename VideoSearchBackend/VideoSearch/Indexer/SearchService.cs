@@ -7,17 +7,18 @@ namespace VideoSearch.Indexer;
 
 public class SearchService(IStorage storage)
 {
-    public async Task<List<SearchResult>> Search(string q)
+    public async Task<List<SearchResult>> Search(string q, bool bm = false)
     {
         string[] words = q.Tokenize();
         var ngrams = Utils.GetNgrams(words, CreateIndexStep.NgramSize);
-        List<NgramDocument> nDocs = await storage.Search(ngrams.Keys.ToArray(), (int)(300 * CreateIndexStep.AvgDocLenNgrams));
+        List<NgramDocument> nDocs =
+            await storage.Search(ngrams.Keys.ToArray(), (int)(300 * CreateIndexStep.AvgDocLenNgrams), bm);
 
         Dictionary<Guid, double> scores = new();
         foreach (NgramDocument nDoc in nDocs)
         {
             scores.TryAdd(nDoc.DocumentId, 0.0);
-            scores[nDoc.DocumentId] += nDoc.Score;
+            scores[nDoc.DocumentId] += bm ? nDoc.ScoreBm : nDoc.Score;
         }
 
         List<Guid> ids = scores.Select(s => s.Key).ToList();

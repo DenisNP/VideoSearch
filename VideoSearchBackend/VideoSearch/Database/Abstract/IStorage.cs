@@ -14,12 +14,12 @@ public interface IStorage
     public Task<int> CountAll();
     public Task<List<VideoMeta>> GetByIds(List<Guid> ids);
     
-    public Task<List<NgramDocument>> Search(string[] ngrams, int count);
+    public Task<List<NgramDocument>> Search(string[] ngrams, int count, bool bm = false);
 
     public Task<List<VideoMeta>> ListIndexingVideos(int offset, int count);
     public Task<int> CountForStatus(VideoIndexStatus status);
 
-    public Task<List<(string word, double sim)>> GetClosestWords(string word, double similarity);
+    public Task<List<(string word, double sim)>> GetClosestWords(string word, double similarity, int limit = 50);
 
     public Task<NgramModel> GetOrCreateNgram(string ngram);
     public Task UpdateNgram(NgramModel ngramModel);
