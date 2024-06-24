@@ -35,7 +35,7 @@ async def find_similar_words(request: SimilarWordsRequest):
     for word in request.words:
         word_lower = word.lower()
         if word_lower not in words_set:
-            results.append({"source": word, "result": [{"error": f'Word "{word}" not found in dictionary.'}]})
+            # results.append({"source": word, "result": [{"error": f'Word "{word}" not found in dictionary.'}]})
             continue
 
         # Retrieve the vector for the current word

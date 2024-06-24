@@ -38,9 +38,9 @@ public class ApiController(IStorage storage, SearchService searchService, IHintS
     }
 
     [HttpGet("Search")]
-    public Task<List<SearchResult>> Search([FromQuery] string q, [FromQuery] bool bm = false)
+    public Task<List<SearchResult>> Search([FromQuery] string q, [FromQuery] bool bm = false, [FromQuery] bool semantic = false)
     {
-        return searchService.Search(q, bm);
+        return searchService.Search(q, bm, semantic);
     }
 
     [HttpGet("Hints")]
@@ -49,5 +49,3 @@ public class ApiController(IStorage storage, SearchService searchService, IHintS
         return Task.FromResult(hintService.GetHintsFor(q));
     }
 }
-
-public record IndexingResult(List<VideoMeta> Videos, Dictionary<string, int> TotalByStatus);

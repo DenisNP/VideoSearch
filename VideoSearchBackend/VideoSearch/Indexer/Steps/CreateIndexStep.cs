@@ -30,7 +30,7 @@ public class CreateIndexStep(ILogger logger) : BaseIndexStep(logger)
         var vectors = new List<(string word, double sim)>();
         foreach (var token in tokens)
         {
-            var closest = await storage.GetClosestWords(token, SimilarityThreshold);
+            List<(string word, double sim)> closest = await storage.GetClosestWords(token, SimilarityThreshold);
             vectors.AddRange(closest);
         }
 

@@ -8,8 +8,5 @@ export const getItemDescription = (item: any) => {
     } else if (item.status === 99) {
         description += '<p><strong>Аудио:</strong> <i>(русская речь отсутствует)</i></p>';
     }
-    if (item.centroids && item.centroids.length) {
-        description += '<p><strong>Центры кластеров:</strong> ' + item.centroids.join(', ') + '</p>';
-    }
     return description;
 };

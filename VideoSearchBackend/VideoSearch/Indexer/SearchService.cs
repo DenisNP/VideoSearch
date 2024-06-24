@@ -7,9 +7,24 @@ namespace VideoSearch.Indexer;
 
 public class SearchService(IStorage storage)
 {
-    public async Task<List<SearchResult>> Search(string q, bool bm = false)
+    private double Tolerance = 0.6;
+    
+    public async Task<List<SearchResult>> Search(string q, bool bm = false, bool semantic = false)
     {
         string[] words = q.Tokenize();
+
+        if (semantic)
+        {
+            var allWords = new List<string>(words);
+            foreach (var word in words)
+            {
+                var similar = await storage.GetClosestWords(word, Tolerance);
+                allWords.AddRange(similar.Select(w => w.word));
+            }
+
+            words = allWords.Distinct().ToArray();
+        }
+        
         var ngrams = Utils.GetNgrams(words, CreateIndexStep.NgramSize);
         List<NgramDocument> nDocs =
             await storage.Search(ngrams.Keys.ToArray(), (int)(300 * CreateIndexStep.AvgDocLenNgrams), bm);

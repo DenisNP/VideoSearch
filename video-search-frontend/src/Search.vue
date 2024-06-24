@@ -48,9 +48,8 @@ const getItemDesc = (item: any) => {
   return getItemDescription(item);
 };
 
-const getPercent = (dist: number) => {
-  const percent = Math.floor((1.0 - dist) * 100);
-  return `Совпадение: ${percent}%`;
+const getScore = (score: number) => {
+  return `Совпадение: ${score.toFixed(2)}`;
 };
 </script>
 
@@ -77,7 +76,7 @@ const getPercent = (dist: number) => {
         <template #extra>
           <skeleton-video :url="item.video.url"/>
         </template>
-        <p>{{ getPercent(item.avgDist) }}</p>
+        <p>{{ getScore(item.score) }}</p>
         <div v-html="getItemDesc(item.video)"/>
       </a-list-item>
     </template>
