@@ -30,6 +30,10 @@ const statusNameAndStyle = (status: string) => {
   switch (status) {
     case 'Queued':
       return ['В очереди', '#1677ff'];
+    case 'Described':
+      return ['Получено описание', '#ff9200'];
+    case 'Translated':
+      return ['Переведено', '#ff9200'];
     case 'VideoIndexed':
       return ['Индекс по видео', '#52c41a'];
     case 'FullIndexed':
