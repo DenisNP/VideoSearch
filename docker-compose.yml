@@ -20,6 +20,5 @@ services:
             - libretranslate
         environment:
             LIBRE_TRANSLATE_URL: http://libretranslate:5000
-            NAVEC_API_URL: http://navec:8000
             AVG_DOC_LEN_NGRAMS: 150
         env_file: .env
