@@ -104,4 +104,38 @@ public static class Utils
 
         return (double)latinCharCount / totalCharCount;
     }
+    
+    public static float[] GetAveragePoint(IList<float[]> points)
+    {
+        // Проверяем, что список не пустой и что все массивы одной длины
+        if (points.Count == 0 || points.Any(p => p.Length != points[0].Length))
+        {
+            throw new ArgumentException("List is empty or arrays are not of the same length.");
+        }
+
+        // Длина массивов координат (размерность пространства)
+        int dimensions = points[0].Length;
+
+        // Массив для хранения суммы координат
+        var sum = new float[dimensions];
+
+        // Суммируем координаты по всем точкам
+        foreach (float[] point in points)
+        {
+            for (var i = 0; i < dimensions; i++)
+            {
+                sum[i] += point[i];
+            }
+        }
+
+        // Вычисляем средние координаты
+        var average = new float[dimensions];
+        int count = points.Count;
+        for (var i = 0; i < dimensions; i++)
+        {
+            average[i] = sum[i] / count;
+        }
+
+        return average;
+    }
 }
