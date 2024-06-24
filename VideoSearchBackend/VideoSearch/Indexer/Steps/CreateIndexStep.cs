@@ -33,14 +33,14 @@ public class CreateIndexStep(ILogger logger) : BaseIndexStep(logger)
         var similarReq = new SimilarWordsRequest(tokens.ToArray(), SimilarityThreshold);
         List<SimilarWordsResult> vectors = new List<SimilarWordsResult>();
 
-        try
+        /*TODO try
         {
             vectors = await vectorizer.FindSimilarWords(similarReq);
         }
         catch
         {
             // ignored
-        }
+        }*/
 
         Dictionary<string, double> lowerCoefficients = new();
         foreach (var (_, similarWords) in vectors)
