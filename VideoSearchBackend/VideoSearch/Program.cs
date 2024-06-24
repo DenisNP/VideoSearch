@@ -1,3 +1,4 @@
+using VideoSearch;
 using VideoSearch.Database;
 using VideoSearch.Database.Abstract;
 using VideoSearch.Indexer;
@@ -38,6 +39,11 @@ app.UseCors(policyBuilder => policyBuilder.AllowAnyOrigin().AllowAnyHeader().All
 
 app.Services.GetRequiredService<IStorage>().Init();
 await app.Services.GetRequiredService<IHintService>().Rebuild();
+
+app.Services.GetRequiredService<ILogger>().LogInformation(
+    "Average doc length ngrams set to: {Len}",
+    Utils.GetAverageDocLenNgrams()
+);
 
 app.MapControllers();
 app.Run();

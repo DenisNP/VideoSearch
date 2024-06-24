@@ -41,6 +41,17 @@ public static class Utils
         "у"
     ];
 
+    private static double? _avgDocLenNgrams;
+
+    public static double GetAverageDocLenNgrams()
+    {
+        _avgDocLenNgrams ??= double.TryParse(Environment.GetEnvironmentVariable("AVG_DOC_LEN_NGRAMS") ?? "", out double d)
+            ? d
+            : 150.0;
+
+        return _avgDocLenNgrams.Value;
+    }
+
     public static string[] Tokenize(this string s)
     {
         IEnumerable<string> tokens = Regex.Split(s, @"[^А-Яа-яЁёA-Z0-9a-z\-]+")

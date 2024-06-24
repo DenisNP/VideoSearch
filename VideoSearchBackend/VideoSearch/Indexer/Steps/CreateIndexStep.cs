@@ -10,7 +10,6 @@ public class CreateIndexStep(ILogger logger) : BaseIndexStep(logger)
     protected override VideoIndexStatus TargetStatus => VideoIndexStatus.VideoIndexed;
 
     public const int NgramSize = 3;
-    public const double AvgDocLenNgrams = 90.0;
     private const double SimilarityThreshold = 0.6;
 
     protected override async Task InternalRun(VideoMeta record, IServiceProvider serviceProvider, IStorage storage, int nThread)
@@ -93,7 +92,7 @@ public class CreateIndexStep(ILogger logger) : BaseIndexStep(logger)
                 DocumentId = document.Id,
                 CountInDoc = ngCount,
                 Tf = ((double) ngCount / ngramsInDoc),
-                TfBm = Utils.TfBm(ngCount, ngramsInDoc, AvgDocLenNgrams),
+                TfBm = Utils.TfBm(ngCount, ngramsInDoc, Utils.GetAverageDocLenNgrams()),
             };
             ngDoc.Score = ngDoc.Tf * ngramModel.Idf;
             ngDoc.ScoreBm = ngDoc.TfBm * ngramModel.IdfBm;
@@ -104,7 +103,7 @@ public class CreateIndexStep(ILogger logger) : BaseIndexStep(logger)
         {
             ngDoc.CountInDoc += ngCount;
             ngDoc.Tf = (double)ngDoc.CountInDoc / ngramsInDoc;
-            ngDoc.TfBm = Utils.TfBm(ngDoc.CountInDoc, ngramsInDoc, AvgDocLenNgrams);
+            ngDoc.TfBm = Utils.TfBm(ngDoc.CountInDoc, ngramsInDoc, Utils.GetAverageDocLenNgrams());
             ngDoc.Score = ngDoc.Tf * ngramModel.Idf;
             ngDoc.ScoreBm = ngDoc.TfBm * ngramModel.IdfBm;
 

@@ -7,8 +7,8 @@ namespace VideoSearch.Indexer;
 
 public class SearchService(IStorage storage)
 {
-    private double Tolerance = 0.6;
-    
+    private const double Tolerance = 0.6;
+
     public async Task<List<SearchResult>> Search(string q, bool bm = false, bool semantic = false)
     {
         string[] words = q.Tokenize();
@@ -16,18 +16,24 @@ public class SearchService(IStorage storage)
         if (semantic)
         {
             var allWords = new List<string>(words);
+
+            List<Task> tasks = new();
             foreach (var word in words)
             {
-                var similar = await storage.GetClosestWords(word, Tolerance);
-                allWords.AddRange(similar.Select(w => w.word));
+                tasks.Add(Task.Run(async () =>
+                {
+                    var similar = await storage.GetClosestWords(word, Tolerance);
+                    allWords.AddRange(similar.Select(w => w.word));
+                }));
             }
+            await Task.WhenAll(tasks);
 
             words = allWords.Distinct().ToArray();
         }
-        
+
         var ngrams = Utils.GetNgrams(words, CreateIndexStep.NgramSize);
         List<NgramDocument> nDocs =
-            await storage.Search(ngrams.Keys.ToArray(), (int)(300 * CreateIndexStep.AvgDocLenNgrams), bm);
+            await storage.Search(ngrams.Keys.ToArray(), (int)(300 * Utils.GetAverageDocLenNgrams()), bm);
 
         Dictionary<Guid, double> scores = new();
         foreach (NgramDocument nDoc in nDocs)
