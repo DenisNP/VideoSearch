@@ -27,6 +27,10 @@ public class TranscribeStep(ILogger logger) : BaseIndexStep(logger)
 
         if (transcribeResult.Error != null)
         {
+            if (transcribeResult.Error.Contains("No such file or directory"))
+            {
+                return;
+            }
             throw new Exception(transcribeResult.Error);
         }
 
