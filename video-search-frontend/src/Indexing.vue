@@ -8,7 +8,7 @@ const count = 100;
 
 onMounted(() => {
   reloadCounters();
-  loadList();
+  // loadList();
   interval.value = setInterval(() => {
     if (props.active) {
       reloadCounters();
@@ -43,6 +43,9 @@ const statusNameAndStyle = (status: string) => {
 
 const reloadCounters = async () => {
   counts.value = await getCounters();
+  if (offset.value === 0) {
+    await loadList();
+  }
 };
 
 const loadList = async () => {
