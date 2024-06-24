@@ -11,6 +11,7 @@
     {
 
         public double [] Components { get; protected set; }
+        public float[] ComponentsAsFloat => Components?.Select(c => (float)c).ToArray();
         public string Word { get; set; }
 
         /// <summary>
