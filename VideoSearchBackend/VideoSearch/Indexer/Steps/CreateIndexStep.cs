@@ -58,7 +58,7 @@ public class CreateIndexStep(ILogger logger) : BaseIndexStep(logger)
                 Id = Guid.NewGuid(),
                 VideoMetaId = record.Id,
                 Word = center.Word,
-                Vector = new Vector(cluster.Centroid.Components.Select(x => (float)x).ToArray()),
+                Vector = new Vector(cluster.Centroid.ComponentsAsFloat),
                 ClusterSize = cluster.Points.Count,
                 Type = VideoIndexType.Video
             });
@@ -69,10 +69,36 @@ public class CreateIndexStep(ILogger logger) : BaseIndexStep(logger)
                 Id = Guid.NewGuid(),
                 VideoMetaId = record.Id,
                 Word = center.Word,
-                Vector = new Vector(center.Components.Select(c => (float)c).ToArray()),
+                Vector = new Vector(center.ComponentsAsFloat),
                 ClusterSize = cluster.Points.Count,
                 Type = VideoIndexType.Video
             });
+        }
+
+        // add center of all video
+        if (clusters.Length > 1)
+        {
+            List<DataVec> allPoints = clusters
+                .SelectMany(c => c.Points)
+                .ToList();
+
+            float[] middle = Utils.GetAveragePoint(allPoints.Select(p => p.ComponentsAsFloat).ToList());
+            double[] middleDbl = middle.Select(x => (double)x).ToArray();
+            DataVec middleDataVec = allPoints.MinBy(p => Utils.CosineDistance(p.Components, middleDbl));
+
+            if (!record.Centroids.Contains(middleDataVec.Word))
+            {
+                record.Centroids.Add(middleDataVec.Word);
+                await storage.AddIndex(new VideoIndex
+                {
+                    Id = Guid.NewGuid(),
+                    VideoMetaId = record.Id,
+                    Word = middleDataVec.Word,
+                    Vector = new Vector(middle),
+                    ClusterSize = -1,
+                    Type = VideoIndexType.Video
+                });
+            }
         }
     }
 
