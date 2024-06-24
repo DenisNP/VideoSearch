@@ -18,7 +18,6 @@ services:
             - 5100:8080
         depends_on:
             - libretranslate
-            - navec
         environment:
             LIBRE_TRANSLATE_URL: http://libretranslate:5000
             NAVEC_API_URL: http://navec:8000
