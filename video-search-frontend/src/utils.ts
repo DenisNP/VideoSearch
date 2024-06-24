@@ -8,5 +8,8 @@ export const getItemDescription = (item: any) => {
     } else if (item.status === 99) {
         description += '<p><strong>Аудио:</strong> <i>(русская речь отсутствует)</i></p>';
     }
+    if (item.cloud && item.cloud.length) {
+        description += '<p><strong>Семантическое облако:</strong> ' + item.cloud.join(', ') + '</p>';
+    }
     return description;
 };
