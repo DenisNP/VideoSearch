@@ -7,7 +7,9 @@ public class VsContext : DbContext
 {
     public DbSet<VideoMeta> VideoMetas { get; set; }
     public DbSet<VideoIndex> VideoIndices { get; set; }
-    
+    public DbSet<NgramModel> Ngrams { get; set; }
+    public DbSet<NgramDocument> NgramDocuments { get; set; }
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.HasPostgresExtension("vector");
@@ -50,6 +52,17 @@ public class VsContext : DbContext
             .HasOperators("vector_cosine_ops")
             .HasStorageParameter("m", 16)
             .HasStorageParameter("ef_construction", 64);
+
+        modelBuilder.Entity<NgramModel>()
+            .HasKey(n => n.Ngram);
+
+        modelBuilder.Entity<NgramDocument>()
+            .HasKey(d => new { d.Ngram, d.DocumentId });
+
+        modelBuilder.Entity<NgramDocument>()
+            .HasIndex(d => d.Ngram);
+        modelBuilder.Entity<NgramDocument>()
+            .HasIndex(d => d.DocumentId);
     }
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)

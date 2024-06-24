@@ -12,8 +12,6 @@ public class IndexerService(
     ) : BackgroundService
 {
     private const int Parallel = 1;
-    private const int SequentialErrorsAllowed = 10;
-    private int _attempts = 0;
 
     private readonly BaseIndexStep[] _steps =
     [
@@ -51,37 +49,14 @@ public class IndexerService(
         await Task.WhenAll(tasks);
     }
 
-    /*private async Task ExecuteSequentialFullIndex(CancellationToken stoppingToken)
-    {
-        logger.LogInformation("Sequential full index running...");
-        
-        using IServiceScope scope = serviceScopeFactory.CreateScope();
-        while (!stoppingToken.IsCancellationRequested)
-        {
-            var scopedStorage = scope.ServiceProvider.GetRequiredService<IStorage>();
-            VideoMeta record = await scopedStorage.GetNextPartialIndexed();
-            await TryIndex(record, scope, -1);
-            await Task.Delay(TimeSpan.FromMilliseconds(50), stoppingToken);
-        }
-    }*/
-
     private async Task TryIndex(VideoMeta record, IServiceScope scope, int nThread)
     {
         if (record != null)
         {
             foreach (BaseIndexStep step in _steps)
             {
-                if (!await step.Run(record, scope, nThread))
-                {
-                    /*_attempts++;
-                    if (_attempts >= SequentialErrorsAllowed)
-                    {
-                        await this.StopAsync(default);
-                    }*/
-                }
+                await step.Run(record, scope, nThread);
             }
-
-            _attempts = 0;
         }
     }
 }

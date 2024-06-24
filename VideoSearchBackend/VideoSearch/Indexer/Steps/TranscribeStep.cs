@@ -1,9 +1,6 @@
-using Pgvector;
 using VideoSearch.Database.Abstract;
 using VideoSearch.Database.Models;
 using VideoSearch.Indexer.Abstract;
-using VideoSearch.Vectorizer.Abstract;
-using VideoSearch.Vectorizer.Models;
 using VideoSearch.VideoTranscriber.Abstract;
 using VideoSearch.VideoTranscriber.Models;
 
@@ -11,65 +8,44 @@ namespace VideoSearch.Indexer.Steps;
 
 public class TranscribeStep(ILogger logger) : BaseIndexStep(logger)
 {
-    private const int MaxKeywords = 4;
+    private const int MaxKeywords = 5;
 
     protected override VideoIndexStatus InitialStatus => VideoIndexStatus.VideoIndexed;
     protected override VideoIndexStatus TargetStatus => VideoIndexStatus.FullIndexed;
 
     protected override async Task InternalRun(VideoMeta record, IServiceProvider serviceProvider, IStorage storage, int nThread)
     {
-        var videoTranscriberService = serviceProvider.GetRequiredService<IVideoTranscriberService>();
-        var vectorizer = serviceProvider.GetRequiredService<IVectorizerService>();
         var hintService = serviceProvider.GetRequiredService<IHintService>();
+        string[] words = null;
 
-        var transcribeRequest = new TranscribeVideoRequest(record.Url);
-        var transcribeResult = await videoTranscriberService.Transcribe(transcribeRequest);
-
-        if (transcribeResult.Error != null)
+        if (record.SttKeywords == null)
         {
-            if (transcribeResult.Error.Contains("No such file or directory"))
-            {
-                return;
-            }
-            throw new Exception(transcribeResult.Error);
-        }
+            return; // TODO
+            var videoTranscriberService = serviceProvider.GetRequiredService<IVideoTranscriberService>();
 
-        string[] words = transcribeResult.Result?.ToArray() ?? [];
+            var transcribeRequest = new TranscribeVideoRequest(record.Url);
+            var transcribeResult = await videoTranscriberService.Transcribe(transcribeRequest);
+
+            if (transcribeResult.Error != null)
+            {
+                throw new Exception(transcribeResult.Error);
+            }
+
+            words = transcribeResult.Result?.Take(MaxKeywords).ToArray() ?? [];
+            record.SttKeywords = words.ToList();
+        }
+        else
+        {
+            words = record.SttKeywords.ToArray();
+        }
 
         if (words.Length == 0)
         {
             return;
         }
 
-        var vectorizeRequest = new VectorizeRequest(words);
-        List<VectorizedWord> vectorizeResult = await vectorizer.Vectorize(vectorizeRequest);
-        vectorizeResult = vectorizeResult.Take(MaxKeywords).ToList();
+        await CreateIndexStep.CreateIndexFor(storage, record, words, await storage.CountAll(), new Dictionary<string, double>());
 
-        if (vectorizeResult.Count == 0)
-        {
-            return;
-        }
-
-        record.SttKeywords = vectorizeResult.Select(v => v.Word).ToList();
-        await CreateIndices(record, storage, vectorizeResult);
         hintService.NotifyIndexUpdated();
-    }
-
-    private async Task CreateIndices(VideoMeta record, IStorage storage, List<VectorizedWord> vectorizeResult)
-    {
-        await storage.RemoveIndicesFor(record.Id, VideoIndexType.Stt);
-
-        foreach (VectorizedWord vectorizedWord in vectorizeResult)
-        {
-            await storage.AddIndex(new VideoIndex
-            {
-                Id = Guid.NewGuid(),
-                VideoMetaId = record.Id,
-                Word = vectorizedWord.Word,
-                Vector = new Vector(vectorizedWord.Vector),
-                ClusterSize = 1,
-                Type = VideoIndexType.Stt
-            });
-        }
     }
 }

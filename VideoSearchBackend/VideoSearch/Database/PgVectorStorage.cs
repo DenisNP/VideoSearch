@@ -78,7 +78,13 @@ public class PgVectorStorage(VsContext context, ILogger<PgVectorStorage> logger,
     {
         return await context.VideoMetas
             .Where(m => m.Status == VideoIndexStatus.VideoIndexed || m.Status == VideoIndexStatus.FullIndexed)
+            .AsNoTracking()
             .ToListAsync();
+    }
+
+    public async Task<int> CountAll()
+    {
+        return await context.VideoMetas.CountAsync();
     }
 
     public async Task AddIndex(VideoIndex index)
@@ -139,5 +145,48 @@ public class PgVectorStorage(VsContext context, ILogger<PgVectorStorage> logger,
         await context.VideoIndices
             .Where(i => i.VideoMetaId == videoMetaId && i.Type == indexType)
             .ExecuteDeleteAsync();
+    }
+
+    public async Task<NgramModel> GetOrCreateNgram(string ngram)
+    {
+        NgramModel ng = await context.Ngrams.FirstOrDefaultAsync(n => n.Ngram == ngram);
+        if (ng == null)
+        {
+            ng = new NgramModel
+            {
+                Ngram = ngram,
+                Idf = 0.0,
+                IdfBm = 0.0,
+                TotalDocs = 0,
+                TotalNgrams = 0
+            };
+            await context.Ngrams.AddAsync(ng);
+            await context.SaveChangesAsync();
+        }
+
+        return await context.Ngrams.FirstAsync(n => n.Ngram == ngram);
+    }
+
+    public async Task UpdateNgram(NgramModel ngramModel)
+    {
+        context.Ngrams.Update(ngramModel);
+        await context.SaveChangesAsync();
+    }
+
+    public async Task<NgramDocument> GetNgramDocument(string ngram, Guid documentId)
+    {
+        return await context.NgramDocuments.FirstOrDefaultAsync(d => d.DocumentId == documentId && d.Ngram == ngram);
+    }
+
+    public async Task AddNgramDocument(NgramDocument document)
+    {
+        await context.NgramDocuments.AddAsync(document);
+        await context.SaveChangesAsync();
+    }
+
+    public async Task UpdateNgramDocument(NgramDocument document)
+    {
+        context.NgramDocuments.Update(document);
+        await context.SaveChangesAsync();
     }
 }

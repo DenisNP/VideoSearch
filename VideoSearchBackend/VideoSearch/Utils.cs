@@ -40,7 +40,7 @@ public static class Utils
         "то",
         "у"
     ];
-    
+
     public static string[] Tokenize(this string s)
     {
         IEnumerable<string> tokens = Regex.Split(s, @"[^А-Яа-яЁёA-Z0-9a-z\-]+")
@@ -91,7 +91,7 @@ public static class Utils
     {
         return clusters.Select(c => c.Points.Count).Average();
     }
-    
+
     public static double GetLatinCharacterRatio(string word)
     {
         if (string.IsNullOrEmpty(word))
@@ -104,38 +104,68 @@ public static class Utils
 
         return (double)latinCharCount / totalCharCount;
     }
-    
-    public static float[] GetAveragePoint(IList<float[]> points)
+
+    public static Dictionary<string, int> GetNgrams(IList<string> words, int n)
     {
-        // Проверяем, что список не пустой и что все массивы одной длины
-        if (points.Count == 0 || points.Any(p => p.Length != points[0].Length))
+        var ngrams = new Dictionary<string, int>();
+
+        // Проходим по каждому слову из списка
+        foreach (var word in words)
         {
-            throw new ArgumentException("List is empty or arrays are not of the same length.");
-        }
-
-        // Длина массивов координат (размерность пространства)
-        int dimensions = points[0].Length;
-
-        // Массив для хранения суммы координат
-        var sum = new float[dimensions];
-
-        // Суммируем координаты по всем точкам
-        foreach (float[] point in points)
-        {
-            for (var i = 0; i < dimensions; i++)
+            // Проходим по слову с шагом 1, чтобы извлечь все возможные N-граммы
+            for (int i = 0; i <= word.Length - n; i++)
             {
-                sum[i] += point[i];
+                // Извлекаем подстроку длиной n символов
+                string ngram = word.Substring(i, n);
+
+                // Обновляем количество найденной N-граммы в словаре
+                if (!ngrams.TryAdd(ngram, 1))
+                {
+                    ngrams[ngram]++;
+                }
             }
         }
 
-        // Вычисляем средние координаты
-        var average = new float[dimensions];
-        int count = points.Count;
-        for (var i = 0; i < dimensions; i++)
+        return ngrams;
+    }
+    
+    public static Dictionary<string, double> GetNgrams(IList<string> words, int n, Dictionary<string, double> lowerCoefficients)
+    {
+        var ngrams = new Dictionary<string, double>();
+
+        // Проходим по каждому слову из списка
+        foreach (var word in words)
         {
-            average[i] = sum[i] / count;
+            double coefficient = lowerCoefficients.GetValueOrDefault(word, 1.0);
+
+            // Проходим по слову с шагом 1, чтобы извлечь все возможные N-граммы
+            for (int i = 0; i <= word.Length - n; i++)
+            {
+                // Извлекаем подстроку длиной n символов
+                string ngram = word.Substring(i, n);
+
+                // Обновляем количество найденной N-граммы в словаре
+                if (!ngrams.TryAdd(ngram, 1.0 * coefficient))
+                {
+                    ngrams[ngram] += coefficient;
+                }
+            }
         }
 
-        return average;
+        return ngrams;
+    }
+
+    public static double IdfBm(int totalDocs, int docsWithNgram)
+    {
+        return Math.Log(((double) totalDocs - docsWithNgram + 0.5) / ((double) docsWithNgram + 0.5) + 1.0);
+    }
+
+    public static double TfBm(double currentNgramsInDoc, double totalNgramsInDoc, double avgDocLen)
+    {
+        const double k1 = 1.5;
+        const double b = 0.75;
+        const double delta = 1;
+        return ((double)currentNgramsInDoc * k1) /
+            (currentNgramsInDoc * k1 + (1 - b + b * totalNgramsInDoc / avgDocLen)) + delta;
     }
 }
