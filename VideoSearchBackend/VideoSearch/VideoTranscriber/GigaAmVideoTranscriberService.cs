@@ -7,11 +7,18 @@ namespace VideoSearch.VideoTranscriber;
 
 public class GigaAmVideoTranscriberService(string? baseUrl) : IVideoTranscriberService
 {
-    private readonly string _baseUrl = baseUrl ?? throw 
-        new Exception(nameof(GigaAmVideoTranscriberService) + " " + nameof(baseUrl) + " is null");
+    public bool IsActivated()
+    {
+        return !string.IsNullOrEmpty(baseUrl);
+    }
 
     public async Task<TranscribeVideoResponse> Transcribe(TranscribeVideoRequest request)
     {
+        if (!IsActivated())
+        {
+            throw new Exception(nameof(GigaAmVideoTranscriberService) + " " + nameof(baseUrl) + " is null");
+        }
+
         using var httpClient = new HttpClient();
         httpClient.Timeout = TimeSpan.FromMinutes(1);
 
@@ -21,7 +28,7 @@ public class GigaAmVideoTranscriberService(string? baseUrl) : IVideoTranscriberS
         );
 
         var content = new StringContent(json, Encoding.UTF8, "application/json");
-        HttpResponseMessage httpResponse = await httpClient.PostAsync(_baseUrl + "/transcribe-keywords", content);
+        HttpResponseMessage httpResponse = await httpClient.PostAsync(baseUrl + "/transcribe-keywords", content);
 
         if (!httpResponse.IsSuccessStatusCode)
         {

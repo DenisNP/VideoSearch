@@ -49,6 +49,9 @@ public class CreateIndexStep(ILogger logger) : BaseIndexStep(logger)
         // create indices
         await CreateIndexFor(storage, record, tokens, totalDocs, lowerCoefficients);
         
+        // set kw
+        record.Keywords = tokens;
+        
         // rebuild hints
         var hintService = serviceProvider.GetRequiredService<IHintService>();
         hintService.NotifyIndexUpdated();

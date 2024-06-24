@@ -20,8 +20,12 @@ public class TranscribeStep(ILogger logger) : BaseIndexStep(logger)
 
         if (record.SttKeywords == null)
         {
-            return; // TODO
             var videoTranscriberService = serviceProvider.GetRequiredService<IVideoTranscriberService>();
+
+            if (!videoTranscriberService.IsActivated())
+            {
+                return;
+            }
 
             var transcribeRequest = new TranscribeVideoRequest(record.Url);
             var transcribeResult = await videoTranscriberService.Transcribe(transcribeRequest);
