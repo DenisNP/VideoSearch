@@ -29,7 +29,7 @@ public class VsContext : DbContext
         modelBuilder.Entity<VideoMeta>()
             .Property(m => m.Keywords).IsRequired(false);
         modelBuilder.Entity<VideoMeta>()
-            .Property(m => m.Centroids).IsRequired(false);
+            .Property(m => m.Cloud).IsRequired(false);
         modelBuilder.Entity<VideoMeta>()
             .Property(m => m.TranslatedDescription).IsRequired(false);
         modelBuilder.Entity<VideoMeta>()

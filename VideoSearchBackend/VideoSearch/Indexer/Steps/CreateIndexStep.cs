@@ -34,23 +34,24 @@ public class CreateIndexStep(ILogger logger) : BaseIndexStep(logger)
         }
 
         Dictionary<string, double> lowerCoefficients = new();
+        List<string> additionalTokens = new();
         foreach (var (word, sim) in vectors)
         {
             if (!lowerCoefficients.ContainsKey(word) || sim > lowerCoefficients[word])
             {
                 lowerCoefficients[word] = sim;
             }
-            tokens.Add(word);
+            additionalTokens.Add(word);
         }
 
-        tokens = tokens.Distinct().ToList();
-
-        // create indices
-        await CreateIndexFor(storage, record, tokens, totalDocs, lowerCoefficients);
-        
         // set kw
         record.Keywords = tokens;
-        
+        record.Cloud = additionalTokens.Distinct().ToList();
+        List<string> fullTokens = tokens.Concat(additionalTokens).Distinct().ToList();
+
+        // create indices
+        await CreateIndexFor(storage, record, fullTokens, totalDocs, lowerCoefficients);
+
         // rebuild hints
         var hintService = serviceProvider.GetRequiredService<IHintService>();
         hintService.NotifyIndexUpdated();
