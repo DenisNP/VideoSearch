@@ -6,8 +6,11 @@ import {getItemDescription} from "@/utils";
 
 const query = ref('');
 const results = ref([]);
+const semantic = ref(false);
+const bm = ref(false);
+
 const onSearch = async () => {
-  results.value = await search(query.value);
+  results.value = await search(query.value, bm.value, semantic.value);
 };
 
 const hintsToShow = ref([] as string[]);
@@ -55,7 +58,11 @@ const getScore = (score: number) => {
 
 <template>
 <a-card title="Поиск">
-  <template #extra><a href="/swagger" target="_blank">swagger</a></template>
+  <template #extra>
+    <a-checkbox v-model:checked="bm">BM25+</a-checkbox>
+    <a-checkbox v-model:checked="semantic">Семантический поиск</a-checkbox>
+    <a href="/swagger" target="_blank" style="margin-left: 20px;">swagger</a>
+  </template>
   <a-tag v-for="(h, idx) in hintsToShow" :key="h">
     <span v-html="getHint(h, idx)"></span>
   </a-tag>

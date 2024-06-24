@@ -27,7 +27,7 @@ export const hints = async (q: string) => {
     return await result.json();
 }
 
-export const search = async (q: string) => {
-    const result = await fetch(`${address}/api/Search?q=${q}`);
+export const search = async (q: string, bm: boolean, semantic: boolean) => {
+    const result = await fetch(`${address}/api/Search?q=${q}&semantic=${semantic}&bm=${bm}`);
     return await result.json();
 }
