@@ -20,8 +20,10 @@ public interface IStorage
     public Task<int> CountForStatus(VideoIndexStatus status);
 
     public Task<List<(string word, double sim)>> GetClosestWords(string word, double similarity, int limit = 50);
+    public Task<List<WordVector>> GetVectors(IList<string> words);
 
     public Task<NgramModel> GetOrCreateNgram(string ngram);
+    public Task<List<NgramModel>> GetNgrams(IList<string> ngrams);
     public Task UpdateNgram(NgramModel ngramModel);
     public Task<NgramDocument> GetNgramDocument(string ngram, Guid documentId);
     public Task AddNgramDocument(NgramDocument document);

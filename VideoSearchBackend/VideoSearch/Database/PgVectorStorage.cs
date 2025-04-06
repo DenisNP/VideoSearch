@@ -124,13 +124,18 @@ public class PgVectorStorage(VsContext context, ILogger<PgVectorStorage> logger)
         var vectorsFound = await context.Navec.OrderBy(i => i.Vector.CosineDistance(wordFound.Vector))
             .Select(w => new { Word = w, Distance = w.Vector.CosineDistance(wordFound.Vector) })
             // .Where(i => i.Distance <= distance)
-            .Take(limit)
+            .Take(limit + 1)
             .ToListAsync();
 
         return vectorsFound
             .Select(v => (word: v.Word.Word, sim: 1.0 - v.Distance))
-            .Where(v => v.sim >= similarity)
+            .Where(v => v.sim >= similarity && v.word != word)
             .ToList();
+    }
+
+    public async Task<List<WordVector>> GetVectors(IList<string> words)
+    {
+        return await context.Navec.Where(v => words.Contains(v.Word)).ToListAsync();
     }
 
     public async Task<NgramModel> GetOrCreateNgram(string ngram)
@@ -151,6 +156,11 @@ public class PgVectorStorage(VsContext context, ILogger<PgVectorStorage> logger)
         }
 
         return await context.Ngrams.FirstAsync(n => n.Ngram == ngram);
+    }
+
+    public async Task<List<NgramModel>> GetNgrams(IList<string> ngrams)
+    {
+        return await context.Ngrams.Where(n => ngrams.Contains(n.Ngram)).ToListAsync();
     }
 
     public async Task UpdateNgram(NgramModel ngramModel)

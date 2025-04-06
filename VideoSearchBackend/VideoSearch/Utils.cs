@@ -1,4 +1,5 @@
 ﻿using System.Text.RegularExpressions;
+using Pgvector;
 using VideoSearch.External.KMeans;
 
 namespace VideoSearch;
@@ -178,5 +179,10 @@ public static class Utils
         const double delta = 1;
         return ((double)currentNgramsInDoc * k1) /
             (currentNgramsInDoc * k1 + (1 - b + b * totalNgramsInDoc / avgDocLen)) + delta;
+    }
+
+    public static double[] AsDoubleArray(this Vector vector)
+    {
+        return vector.ToArray().Select(c => (double)c).ToArray();
     }
 }

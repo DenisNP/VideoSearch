@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import {ref} from "vue";
+import {nextTick, ref} from "vue";
 import { hints, search } from "./api";
 import SkeletonVideo from "@/components/SkeletonVideo.vue";
 import {getItemDescription} from "@/utils";
@@ -7,10 +7,13 @@ import {getItemDescription} from "@/utils";
 const query = ref('');
 const results = ref([]);
 const semantic = ref(false);
-const bm = ref(false);
+const bm = ref(true);
 
 const onSearch = async () => {
-  results.value = await search(query.value, bm.value, semantic.value);
+  results.value = [];
+  await nextTick(async () => {
+    results.value = await search(query.value, bm.value, semantic.value);
+  });
 };
 
 const hintsToShow = ref([] as string[]);

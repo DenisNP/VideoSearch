@@ -5,9 +5,11 @@ using VideoSearch.Indexer.Steps;
 
 namespace VideoSearch.Indexer;
 
-public class SearchService(IStorage storage)
+public class SearchService(IStorage storage, IServiceProvider serviceProvider)
 {
     private const double Tolerance = 0.6;
+    private const double IdfTolerance = 1.5;
+    private const int Count = 300;
 
     public async Task<List<SearchResult>> Search(string q, bool bm = false, bool semantic = false)
     {
@@ -22,7 +24,9 @@ public class SearchService(IStorage storage)
             {
                 tasks.Add(Task.Run(async () =>
                 {
-                    var similar = await storage.GetClosestWords(word, Tolerance);
+                    await using AsyncServiceScope scope = serviceProvider.CreateAsyncScope();
+                    IStorage tempStorage = scope.ServiceProvider.GetRequiredService<IStorage>();
+                    var similar = await tempStorage.GetClosestWords(word, Tolerance);
                     allWords.AddRange(similar.Select(w => w.word));
                 }));
             }
@@ -31,9 +35,14 @@ public class SearchService(IStorage storage)
             words = allWords.Distinct().ToArray();
         }
 
-        var ngrams = Utils.GetNgrams(words, CreateIndexStep.NgramSize);
-        List<NgramDocument> nDocs =
-            await storage.Search(ngrams.Keys.ToArray(), (int)(300 * Utils.GetAverageDocLenNgrams()), bm);
+        Dictionary<string, int> ngrams = Utils.GetNgrams(words, CreateIndexStep.NgramSize);
+        List<NgramModel> ngModels = await storage.GetNgrams(ngrams.Keys.ToList());
+        foreach (NgramModel ngModel in ngModels.Where(m => bm ? m.IdfBm < IdfTolerance : m.Idf < IdfTolerance))
+        {
+            ngrams.Remove(ngModel.Ngram);
+        }
+
+        List<NgramDocument> nDocs = await storage.Search(ngrams.Keys.ToArray(), Count * ngrams.Count * 2, bm);
 
         Dictionary<Guid, double> scores = new();
         foreach (NgramDocument nDoc in nDocs)
@@ -42,7 +51,11 @@ public class SearchService(IStorage storage)
             scores[nDoc.DocumentId] += bm ? nDoc.ScoreBm : nDoc.Score;
         }
 
-        List<Guid> ids = scores.Select(s => s.Key).ToList();
+        List<Guid> ids = scores
+            .OrderByDescending(s => s.Value)
+            .Select(s => s.Key)
+            .Take(Count)
+            .ToList();
 
         var metas = await storage.GetByIds(ids);
         var result = metas.Select(m => new SearchResult(m, scores[m.Id])).OrderByDescending(r => r.Score).ToList();
